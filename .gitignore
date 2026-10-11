@@ -85,6 +85,7 @@ telegram-bazel-cache/
 local.bazelrc
 .worktrees/
 /bazel-Nagram-ios
+/bazel-*
 
 # vendored 三方库 (webp 等) 的 gradle build 缓存，不应纳入版本控制
 .gradle/

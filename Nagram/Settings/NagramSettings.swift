@@ -275,8 +275,6 @@ public final class NagramSettings {
     @NagramDefault("nagram.skipSensitiveContentWarning", false)
     public var skipSensitiveContentWarning: Bool
 
-
-
     // MARK: 波次 3 批 A — 纯 UI 单点开关
     /// 隐藏消息反应
     @NagramDefault("nagram.hideReactions", false)
@@ -590,6 +588,35 @@ public final class NagramSettings {
     /// 回车键发送消息
     @NagramDefault("nagram.sendWithReturnKey", false)
     public var sendWithReturnKey: Bool
+    /// 选中文本时显示文字样式工具栏
+    @NagramDefault("nagram.showTextStyleToolbar", true)
+    public var showTextStyleToolbar: Bool
+    /// 发送时自动插入中英文空格
+    @NagramDefault("nagram.enablePanguOnSending", false)
+    public var enablePanguOnSending: Bool
+    /// 编辑时自动插入中英文空格
+    @NagramDefault("nagram.enablePanguOnEditing", false)
+    public var enablePanguOnEditing: Bool
+    /// 接收展示时自动插入中英文空格
+    @NagramDefault("nagram.enablePanguOnReceiving", false)
+    public var enablePanguOnReceiving: Bool
+    /// 更宽的频道帖子
+    @NagramDefault("nagram.wideChannelPosts", false)
+    public var wideChannelPosts: Bool
+    /// 隐藏动态（Stories）
+    @NagramDefault("nagram.hideStories", false)
+    public var hideStories: Bool
+
+    @NagramDefault("nagram.hideTopStories", false)
+    public var hideTopStories: Bool
+    @NagramDefault("nagram.disableStoryCameraSwipe", false)
+    public var disableStoryCameraSwipe: Bool
+    @NagramDefault("nagram.disableChatAvatarStories", false)
+    public var disableChatAvatarStories: Bool
+
+    public var disableStoryCameraSwipeEffective: Bool {
+        return self.hideStories || self.disableStoryCameraSwipe
+    }
 
     public var disableChatAvatarStoriesEffective: Bool {
         return self.hideStories || self.disableChatAvatarStories
