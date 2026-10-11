@@ -12,16 +12,6 @@ The upstream source snapshot is `db0722d6`, imported on 2026-10-11. Upstream cop
 
 There is one client identity. Compatibility variants and other clients' API credentials are not used. All app identifiers and API credentials are loaded from the ignored local `.env` and matching GitHub Actions secrets, never from committed values.
 
-## Features
-
-- Ghost mode with separate read-receipt, typing/upload and online-status controls, including media and story viewing. Optional offline sending delays cloud delivery by 15 seconds after uploads; manual schedules are preserved.
-- Retained deleted messages, edit history, preservation filters and local archive import/export.
-- Keep locally loaded chats after leaving or being kicked.
-- Optional screenshots in secret chats and an Expire button for TTL photos and videos.
-- Local message filters and sponsored-message hiding.
-- Separate styles and colors for edited/deleted markers, plus custom edited text.
-- Local Premium interface options; server features still require a real subscription.
-- Native simulator support.
 
 Builds use your own private API registration.
 
