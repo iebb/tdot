@@ -4,5 +4,6 @@
     "deploy_xcode": "27.0",
     "bazel": "9.2.0:dd466352a3e4d3581b8898740ee1ff208866ccbe25f8d367c5dcb950219587e6",
     "macos": "26",
-    "tdot_revision": 1
+    "tdot_revision": 2,
+    "nagram_revision": "ecc7b4df3ce338d5ad6f4f48c8b46dbcb44d192c"
 }

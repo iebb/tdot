@@ -103,6 +103,7 @@
 
 "Nagram.SecondsInMessages" = "时间戳显示秒";
 "Nagram.ShowForwardedMessageDate" = "显示转发消息的原始时间";
+"Nagram.ShowMessageId" = "显示消息 ID";
 "Nagram.ChatListMessagePreviewStyle" = "消息预览样式";
 "Nagram.ChatListMessagePreviewStyle.three" = "三行";
 "Nagram.ChatListMessagePreviewStyle.two" = "两行";
@@ -649,3 +650,6 @@
 "Nagram.ExpireMedia" = "立即销毁";
 
 "Nagram.GhostScheduledSending" = "使用延迟发送保持离线";
+"Nagram.MutualContact.Description" = "此联系人是双向联系人。";
+"Nagram.UnpinAllMessagesAlert" = "要取消所有消息的置顶吗？";
+"Nagram.ConfirmUnpin" = "取消置顶前确认";

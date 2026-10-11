@@ -2,7 +2,7 @@
 
 An independent Telegram client for iPhone and iPad, with flexible chat organization, themes, translation and privacy controls.
 
-The upstream source snapshot is `db0722d6`, imported on 2026-10-11. Upstream copyrights and license notices remain applicable.
+The initial source snapshot is `db0722d6`, imported on 2026-10-11. App changes are synced with [Nagram](https://github.com/NextAlone/Nagram-iOS) through `ecc7b4df`, while preserving t.'s features and release configuration. Upstream copyrights and license notices remain applicable.
 
 - App name and icon: **t.**
 - Bundle ID: `${BUNDLE_ID}`

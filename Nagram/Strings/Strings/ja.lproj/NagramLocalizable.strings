@@ -103,6 +103,7 @@
 
 "Nagram.SecondsInMessages" = "タイムスタンプに秒を表示";
 "Nagram.ShowForwardedMessageDate" = "転送メッセージの元の時刻を表示";
+"Nagram.ShowMessageId" = "メッセージ ID を表示";
 "Nagram.ChatListMessagePreviewStyle" = "メッセージプレビュー形式";
 "Nagram.ChatListMessagePreviewStyle.three" = "3行";
 "Nagram.ChatListMessagePreviewStyle.two" = "2行";
@@ -649,3 +650,6 @@ iCloud キーチェーン同期を有効にすると、バックアップは他�
 "Nagram.ExpireMedia" = "今すぐ消去";
 
 "Nagram.GhostScheduledSending" = "遅延送信でオフラインを維持";
+"Nagram.MutualContact.Description" = "この連絡先は相互連絡先です。";
+"Nagram.UnpinAllMessagesAlert" = "すべてのメッセージのピン留めを解除しますか？";
+"Nagram.ConfirmUnpin" = "ピン留め解除前に確認";

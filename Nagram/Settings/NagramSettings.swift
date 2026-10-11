@@ -341,6 +341,9 @@ public final class NagramSettings {
     /// 在转发来源后显示原始消息时间
     @NagramDefault("nagram.showForwardedMessageDate", false)
     public var showForwardedMessageDate: Bool
+    /// 在气泡时间后显示消息 ID（仅群组、超级群组和频道，与 Android Nagram 一致）
+    @NagramDefault("nagram.showMessageId", false)
+    public var showMessageId: Bool
     /// 隐藏频道底部面板按钮
     @NagramDefault("nagram.hideChannelBottomButton", false)
     public var hideChannelBottomButton: Bool
@@ -356,6 +359,9 @@ public final class NagramSettings {
     /// 通话前确认（默认关 = 保持原生无确认）
     @NagramDefault("nagram.confirmCalls", false)
     public var confirmCalls: Bool
+    /// 取消消息置顶前确认，含消息菜单的取消置顶和取消所有置顶（默认关 = 保持原生行为）
+    @NagramDefault("nagram.confirmUnpin", false)
+    public var confirmUnpin: Bool
     /// 资料页显示数据中心 DC
     @NagramDefault("nagram.showDC", false)
     public var showDC: Bool

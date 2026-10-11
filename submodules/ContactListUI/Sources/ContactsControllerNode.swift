@@ -18,6 +18,8 @@ import ComponentFlow
 import SwiftUI
 import ContactsUI
 import EdgeEffect
+import UndoUI // MARK: NEXTGRAM
+import NagramStrings // MARK: NEXTGRAM
 
 private final class ContextControllerContentSourceImpl: ContextControllerContentSource {
     let controller: ViewController
@@ -251,6 +253,15 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         self.contactListNode.openContactAccessPicker = {
             presentContactAccessPicker(context: context)
         }
+        
+        // MARK: NEXTGRAM — 双向联系人说明
+        self.contactListNode.displayMutualContactInfo = { [weak self] in
+            guard let self else {
+                return
+            }
+            let presentationData = self.context.sharedContext.currentPresentationData.with { $0 }
+            self.controller?.present(UndoOverlayController(presentationData: presentationData, content: .info(title: nil, text: ngI18n("Nagram.MutualContact.Description", presentationData.strings.baseLanguageCode), timeout: nil, customUndoText: nil), elevatedLayout: false, animateInAsReplacement: false, action: { _ in return false }), in: .current)
+        }
     }
     
     deinit {
@@ -301,8 +312,10 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let tabsNodeIsSearch = false
         
         let title: String
-        let leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
-        let rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>]
+        var leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
+        var rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>]
+        // MARK: NEXTGRAM — 推入模式：左侧让给返回按钮，排序移到右侧
+        let nagramIsPushed = self.controller?.nagramIsPushed ?? false
         
         if let selectionState = self.contactListNode.selectionState {
             title = self.presentationData.strings.Contacts_SelectedContacts(Int32(selectionState.selectedPeerIndices.count))
@@ -339,16 +352,23 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                     self.controller?.addPressed()
                 }
             )))]
+            // MARK: NEXTGRAM
+            if nagramIsPushed, let sortButton = leftButton {
+                leftButton = nil
+                rightButtons.insert(sortButton, at: 0)
+            }
         }
         
         let primaryContent = ChatListHeaderComponent.Content(
             title: self.presentationData.strings.Contacts_Title,
-            navigationBackTitle: nil,
+            navigationBackTitle: nagramIsPushed ? self.presentationData.strings.Common_Back : nil, // MARK: NEXTGRAM
             titleComponent: nil,
             chatListTitle: NetworkStatusTitle(text: title, activity: false, hasProxy: false, connectsViaProxy: false, isPasscodeSet: false, isManuallyLocked: false, peerStatus: nil),
             leftButton: leftButton,
             rightButtons: rightButtons,
-            backPressed: nil
+            backPressed: nagramIsPushed ? { [weak self] in // MARK: NEXTGRAM
+                self?.controller?.dismiss()
+            } : nil
         )
         
         let navigationBarSize = self.navigationBarView.update(
