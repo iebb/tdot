@@ -1,0 +1,52 @@
+#!/bin/bash
+
+if [[ -f .env ]]; then
+    set -a
+    source .env
+    set +a
+fi
+
+export TELEGRAM_ENV_SET="1"
+
+export DEVELOPMENT_CODE_SIGN_IDENTITY="iPhone Distribution: Kitta Ltd (${TEAM_ID})"
+export DISTRIBUTION_CODE_SIGN_IDENTITY="iPhone Distribution: Kitta Ltd (${TEAM_ID})"
+export DEVELOPMENT_TEAM="${TEAM_ID:?Set TEAM_ID in .env}"
+
+export API_ID="${APP_ID:?Set APP_ID in .env}"
+export API_HASH="${APP_HASH:?Set APP_HASH for t.}"
+
+export BUNDLE_ID="${BUNDLE_ID:?Set BUNDLE_ID in .env}"
+export APP_CENTER_ID="0"
+export IS_INTERNAL_BUILD="false"
+export IS_APPSTORE_BUILD="true"
+export APPSTORE_ID="${ASC_APP_ID:?Set ASC_APP_ID in .env}"
+export APP_SPECIFIC_URL_SCHEME="${APP_URL_SCHEME:?Set APP_URL_SCHEME in .env}"
+export PREMIUM_IAP_PRODUCT_ID=""
+
+if [ -z "$BUILD_NUMBER" ]; then
+	echo "BUILD_NUMBER is not defined"
+	exit 1
+fi
+
+export DEVELOPMENT_PROVISIONING_PROFILE_APP="match Development ${BUNDLE_ID}"
+export DISTRIBUTION_PROVISIONING_PROFILE_APP="match AppStore ${BUNDLE_ID}"
+export DEVELOPMENT_PROVISIONING_PROFILE_EXTENSION_SHARE="match Development ${BUNDLE_ID}.Share"
+export DISTRIBUTION_PROVISIONING_PROFILE_EXTENSION_SHARE="match AppStore ${BUNDLE_ID}.Share"
+export DEVELOPMENT_PROVISIONING_PROFILE_EXTENSION_WIDGET="match Development ${BUNDLE_ID}.Widget"
+export DISTRIBUTION_PROVISIONING_PROFILE_EXTENSION_WIDGET="match AppStore ${BUNDLE_ID}.Widget"
+export DEVELOPMENT_PROVISIONING_PROFILE_EXTENSION_NOTIFICATIONSERVICE="match Development ${BUNDLE_ID}.NotificationService"
+export DISTRIBUTION_PROVISIONING_PROFILE_EXTENSION_NOTIFICATIONSERVICE="match AppStore ${BUNDLE_ID}.NotificationService"
+export DEVELOPMENT_PROVISIONING_PROFILE_EXTENSION_NOTIFICATIONCONTENT="match Development ${BUNDLE_ID}.NotificationContent"
+export DISTRIBUTION_PROVISIONING_PROFILE_EXTENSION_NOTIFICATIONCONTENT="match AppStore ${BUNDLE_ID}.NotificationContent"
+export DEVELOPMENT_PROVISIONING_PROFILE_EXTENSION_INTENTS="match Development ${BUNDLE_ID}.SiriIntents"
+export DISTRIBUTION_PROVISIONING_PROFILE_EXTENSION_INTENTS="match AppStore ${BUNDLE_ID}.SiriIntents"
+export DEVELOPMENT_PROVISIONING_PROFILE_WATCH_APP="match Development ${BUNDLE_ID}.watchkitapp"
+export DISTRIBUTION_PROVISIONING_PROFILE_WATCH_APP="match AppStore ${BUNDLE_ID}.watchkitapp"
+export DEVELOPMENT_PROVISIONING_PROFILE_WATCH_EXTENSION="match Development ${BUNDLE_ID}.watchkitapp.watchkitextension"
+export DISTRIBUTION_PROVISIONING_PROFILE_WATCH_EXTENSION="match AppStore ${BUNDLE_ID}.watchkitapp.watchkitextension"
+
+BUILDBOX_DIR="buildbox"
+
+export CODESIGNING_PROFILES_VARIANT="appstore"
+
+$@

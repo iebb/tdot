@@ -1,0 +1,14 @@
+{
+    "bundle_id": "${BUNDLE_ID}",
+    "api_id": "${APP_ID}",
+    "api_hash": "${APP_HASH}",
+    "team_id": "${TEAM_ID}",
+    "app_center_id": "0",
+    "is_internal_build": "false",
+    "is_appstore_build": "true",
+    "appstore_id": "${ASC_APP_ID}",
+    "app_specific_url_scheme": "${APP_URL_SCHEME}",
+    "premium_iap_product_id": "",
+    "enable_siri": true,
+    "enable_icloud": false
+}

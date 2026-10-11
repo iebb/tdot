@@ -1,0 +1,29 @@
+name: Export encrypted build cache
+on:
+  workflow_dispatch:
+    inputs:
+      distribution:
+        description: Cached build destination
+        type: choice
+        options: [testflight, simulator]
+        required: true
+permissions:
+  contents: read
+jobs:
+  export:
+    runs-on: xcode-27
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          key: tdot-encrypted-bazel-${{ inputs.distribution }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.sha }}
+          restore-keys: |
+            tdot-encrypted-bazel-${{ inputs.distribution }}-
+          fail-on-cache-miss: true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tdot-encrypted-bazel-${{ inputs.distribution }}
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          if-no-files-found: error
+          retention-days: 1

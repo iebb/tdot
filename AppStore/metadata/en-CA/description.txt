@@ -1,0 +1,13 @@
+t. is an unofficial Telegram client for iPhone and iPad, based on the open-source Telegram, Nagram and Nextgram projects.
+
+Keep your Telegram conversations together while making the interface work the way you prefer.
+
+• Personalize your chats with themes and appearance controls.
+• Organize conversations with folders and chat filters.
+• Use translation and voice-message transcription tools.
+• Manage multiple Telegram accounts.
+• Explore extra controls for messages, media, privacy and navigation.
+
+A Telegram account is required. Optional translation and transcription services may require separate provider credentials. Feature availability depends on Telegram and your configured providers.
+
+t. is independent of Telegram Messenger Inc., Nagram and Nextgram, and is not affiliated with or endorsed by their developers. Telegram is a trademark of Telegram Messenger Inc.

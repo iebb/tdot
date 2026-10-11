@@ -1,0 +1,143 @@
+name: Build t. and upload to TestFlight
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      distribution:
+        description: Build destination
+        type: choice
+        options: [testflight, simulator]
+        default: testflight
+permissions:
+  contents: read
+concurrency:
+  group: tdot-${{ github.ref }}-${{ inputs.distribution || 'testflight' }}
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: xcode-27
+    timeout-minutes: 180
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_HASH: ${{ secrets.APP_HASH }}
+      BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+      APP_GROUP_ID: ${{ secrets.APP_GROUP_ID }}
+      APP_URL_SCHEME: ${{ secrets.APP_URL_SCHEME }}
+      DISTRIBUTION: ${{ inputs.distribution || 'testflight' }}
+      BUILD_NUMBER: ${{ github.run_number }}
+      ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      CI_CACHE_KEY: ${{ secrets.CI_CACHE_KEY }}
+      BUILD_NUMBER_OFFSET: ${{ secrets.BUILD_NUMBER_OFFSET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Select a monotonic build number
+        run: |
+          offset="${BUILD_NUMBER_OFFSET:-0}"
+          [[ "$offset" =~ ^[0-9]+$ ]] || exit 1
+          echo "BUILD_NUMBER=$((GITHUB_RUN_NUMBER + offset))" >> "$GITHUB_ENV"
+      - name: Select Xcode and install Metal
+        run: |
+          set -euo pipefail
+          version="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+          if [[ -d "/Applications/Xcode_${version}.app" ]]; then
+            sudo xcode-select -s "/Applications/Xcode_${version}.app/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain
+      - uses: actions/cache/restore@v4
+        id: bazel_cache
+        with:
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          key: tdot-encrypted-bazel-${{ env.DISTRIBUTION }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.sha }}
+          restore-keys: |
+            tdot-encrypted-bazel-${{ env.DISTRIBUTION }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-
+            tdot-encrypted-bazel-${{ env.DISTRIBUTION }}-
+      - name: Decrypt authenticated compiler cache
+        if: steps.bazel_cache.outputs.cache-matched-key != ''
+        run: bash ci/bazel-cache.sh restore
+      - name: Check whether legacy cache migration stays private
+        if: steps.bazel_cache.outputs.cache-matched-key == ''
+        id: legacy_private
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          private="$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)"
+          echo "allowed=$private" >> "$GITHUB_OUTPUT"
+      - name: Migrate a legacy compiler cache inside a private repository
+        if: steps.legacy_private.outputs.allowed == 'true'
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/telegram-bazel-cache
+          key: tdot-bazel-${{ env.DISTRIBUTION }}-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.sha }}
+          restore-keys: |
+            tdot-bazel-${{ env.DISTRIBUTION }}-
+      - name: Import distribution signing and App Store Connect key
+        if: env.DISTRIBUTION == 'testflight'
+        env:
+          CERTIFICATE_P12: ${{ secrets.IOS_SIGNING_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}
+          PROFILES_TAR_GZ: ${{ secrets.IOS_PROVISIONING_PROFILES_TAR_GZ }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: bash ci/import-signing.sh
+      - name: Build t.
+        run: bash ci/build.sh
+      - name: Encrypt compiled Bazel actions
+        if: always() && steps.bazel_cache.outputs.cache-hit != 'true' && steps.bazel_cache.outputs.cache-primary-key != ''
+        id: encrypt_cache
+        run: bash ci/bazel-cache.sh save
+      - name: Retain only encrypted compiler cache
+        if: always() && steps.encrypt_cache.outputs.ready == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          key: ${{ steps.bazel_cache.outputs.cache-primary-key }}
+      - name: Verify signed app and extension identities
+        if: env.DISTRIBUTION == 'testflight'
+        run: python3 ci/verify-ipa.py build/artifacts/tdot.ipa
+      - name: Check whether a simulator artifact can stay private
+        if: env.DISTRIBUTION == 'simulator'
+        id: private_artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          private="$(gh api "repos/$GITHUB_REPOSITORY" --jq .private)"
+          echo "allowed=$private" >> "$GITHUB_OUTPUT"
+      - name: Retain simulator app in a private repository only
+        if: env.DISTRIBUTION == 'simulator' && steps.private_artifact.outputs.allowed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tdot-simulator-${{ github.run_number }}
+          path: build/artifacts/tdot.ipa
+          if-no-files-found: error
+          retention-days: 1
+      - name: Upload signed IPA to App Store Connect
+        if: env.DISTRIBUTION == 'testflight'
+        run: |
+          set -euo pipefail
+          API_PRIVATE_KEYS_DIR="$(dirname "$ASC_KEY_PATH")" xcrun altool --upload-app --type ios \
+            --file build/artifacts/tdot.ipa --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+      - name: Verify processing and enable internal TestFlight
+        if: env.DISTRIBUTION == 'testflight'
+        run: ruby ci/testflight.rb
+      - name: Save verified TestFlight state
+        if: env.DISTRIBUTION == 'testflight'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tdot-testflight-status-${{ github.run_number }}
+          path: build/artifacts/testflight-status.json
+          if-no-files-found: error
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          if [[ -n "${SIGNING_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$SIGNING_KEYCHAIN" || true
+          fi
+          rm -rf build-input/codesigning "$RUNNER_TEMP/tdot-signing" "$RUNNER_TEMP/tdot-private-keys"

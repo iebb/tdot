@@ -1,0 +1,397 @@
+import Foundation
+
+enum NagramSettingsSyncKeys {
+    private static let cloudPrefix = "nagram.settings."
+
+    private static let explicitKeys: Set<String> = [
+        "nagram.forceCopyEnabled",
+        "nagram.localPremiumEnabled",
+        "nagram.unlimitedAccountsEnabled",
+        "nagram.locationIndicatorMode",
+        "nagram.antiRecallEnabled",
+        "nagram.antiRecallWhitelist",
+        "nagram.antiRecallBlacklist",
+        "nagram.antiRecallExcludedKeywords",
+        "nagram.deletedMessageIndicatorStyle",
+        "nagram.deletedMessageIndicatorColor",
+        "nagram.deletedMessageSemiTransparent",
+        "nagram.preserveBotMessages",
+        "nagram.saveMessageEditHistory",
+        "nagram.keepKickedChats",
+        "nagram.allowSecretChatScreenshots",
+        "nagram.editedMessageIndicatorStyle",
+        "nagram.editedMessageIndicatorText",
+        "nagram.editedMessageIndicatorColor",
+        "nagram.ghostModeEnabled",
+        "nagram.ghostScheduledSending",
+        "nagram.disableReadReceipts",
+        "nagram.disableTypingStatus",
+        "nagram.disableOnlineStatus",
+        "nagram.skipSensitiveContentWarning",
+        "nagram.ignoreContentRestrictions",
+        "nagram.hideReactions",
+        "nagram.disableScrollToNextChannel",
+        "nagram.disableScrollToNextTopic",
+        "nagram.disableGalleryCamera",
+        "nagram.disableGalleryCameraPreview",
+        "nagram.roundVideoCamera",
+        "nagram.disableSendAsButton",
+        "nagram.hideRecordingButton",
+        "nagram.secondsInMessages",
+        "nagram.showForwardedMessageDate",
+        "nagram.hideChannelBottomButton",
+        "nagram.hideSponsoredMessages",
+        "nagram.hidePrivateChatActivities",
+        "nagram.confirmCalls",
+        "nagram.showDC",
+        "nagram.controlHighlightEnabled",
+        "nagram.glassTransparencyMode",
+        "nagram.glassTransparencyPercent",
+        "nagram.stickerSize",
+        "nagram.stickerTimestamp",
+        "nagram.videoPIPSwipeDirection",
+        "nagram.chatListSwipeAction",
+        "nagram.chatListQuickFiltersEnabled",
+        "nagram.chatListQuickFilterReadMode",
+        "nagram.chatListQuickFilterPeerTypes",
+        "nagram.chatListUnreadFirst",
+        "nagram.chatListOldestFirst",
+        "nagram.chatSearchHideRecentListWhenTopPeersVisible",
+        "nagram.musicPlaylistShowFileSize",
+        "nagram.musicPlaylistShowDownloadStatus",
+        "nagram.chatAutoremoveBadgeEnabled",
+        "nagram.openArchiveOnPull",
+        "nagram.showArchiveInFolders",
+        "nagram.hideSavedAndArchivedMessagesInList",
+        "nagram.disableCommunityChatGrouping",
+        "nagram.communityAvatarTapAction",
+        "nagram.chatListStartupFolderMode",
+        "nagram.chatListFolderTabsCompact",
+        "nagram.hideAllChatsFolder",
+        "nagram.hideFolderUnreadCount",
+        "nagram.showFoldersInShareSheet",
+        "nagram.chooseFolderAfterJoining",
+        "nagram.chatToolsEnabled",
+        "nagram.chatListFolderTabDisplayMode",
+        "nagram.chatListMessagePreviewStyle",
+        "nagram.chatListLines",
+        "nagram.chatListCompact",
+        "nagram.recentChatsEnabled",
+        "nagram.tapMessageRowToOpenContextMenu",
+        "nagram.messageDoubleTapAction",
+        "nagram.messageDoubleTapActionWithoutEditPermission",
+        "nagram.showProfileId",
+        "nagram.uploadSpeedBoost",
+        "nagram.downloadSpeedBoost",
+        "nagram.translationProvider",
+        "nagram.translationLLMAPIFormat",
+        "nagram.translationLLMBaseURL",
+        "nagram.translationLLMEndpoint",
+        "nagram.translationLLMModel",
+        "nagram.translationLLMPrompt",
+        "nagram.translationLLMUseContext",
+        "nagram.translationLLMTemperatureTenths",
+        "nagram.translationKeepFormatting",
+        "nagram.sttProvider",
+        "nagram.sttBaseURL",
+        "nagram.sttEndpoint",
+        "nagram.sttModel",
+        "nagram.sttLanguage",
+        "nagram.sttPrompt",
+        "nagram.sendWithReturnKey",
+        "nagram.defaultMessageFormat",
+        "nagram.showTextStyleToolbar",
+        "nagram.enablePanguOnSending",
+        "nagram.enablePanguOnEditing",
+        "nagram.enablePanguOnReceiving",
+        "nagram.wideChannelPosts",
+        "nagram.recentStickerLimit",
+        "nagram.hideStories",
+        "nagram.hideTopStories",
+        "nagram.disableStoryCameraSwipe",
+        "nagram.disableChatAvatarStories",
+        "nagram.showRegDate",
+        "nagram.groupProfileSettingItems",
+        "nagram.hidePhoneInSettings",
+        "nagram.bottomBarLayout.version",
+        "nagram.bottomBarLayout.isBottomBarVisible",
+        "nagram.bottomBarLayout.bottomItems",
+        "nagram.bottomBarLayout.externalItem",
+        "nagram.bottomBarLayout.hiddenItems",
+        "nagram.bottomBarLayout.topSearchVisible",
+        "nagram.bottomBarLayout.showLabels",
+        "nagram.bottomBarLayout.widthMode",
+        "nagram.bottomBarLayout.slotMode",
+        "nagram.bottomBarLayout.buttonWidthFillRatio",
+        "nagram.bottomBarLayout.alignment",
+        "nagram.bottomBarLayout.searchMode",
+        "nagram.hideTabBar",
+        "nagram.hideTabBarContacts",
+        "nagram.hideTabBarChats",
+        "nagram.hideTabBarSettings",
+        "nagram.showTabBarSearch",
+        "nagram.wideTabBar",
+        "nagram.messageMenu.order",
+        "nagram.messageMenu.disabled",
+        "nagram.messageMenu.enabledDefaultDisabled",
+        "nagram.regexFilters.rules",
+        "nagram.regexFilters.disabledPeerIds"
+    ]
+
+    private static let syncedPrefixes: [String] = [
+        "nagram.chatListStartupSpecificFolder.",
+        "nagram.recentChatFolders.",
+        "nagram.autoTranslate."
+    ]
+
+    static func shouldSync(localKey: String) -> Bool {
+        if explicitKeys.contains(localKey) {
+            return true
+        }
+        return syncedPrefixes.contains(where: { localKey.hasPrefix($0) })
+    }
+
+    static func cloudKey(for localKey: String) -> String {
+        return cloudPrefix + localKey
+    }
+
+    static func localKey(fromCloudKey cloudKey: String) -> String? {
+        guard cloudKey.hasPrefix(cloudPrefix) else {
+            return nil
+        }
+        let index = cloudKey.index(cloudKey.startIndex, offsetBy: cloudPrefix.count)
+        let localKey = String(cloudKey[index...])
+        return self.shouldSync(localKey: localKey) ? localKey : nil
+    }
+}
+
+final class NagramSettingsCloudSync {
+    static let shared = NagramSettingsCloudSync()
+    private static let enabledKey = "nagram.iCloudSyncEnabled"
+
+    /// 只在同步已开启的路径上访问。实例化 `NSUbiquitousKeyValueStore` 会在缺少
+    /// `com.apple.developer.ubiquity-kvstore-identifier` entitlement 的构建里触发 SyncedDefaults 的
+    /// "BUG IN CLIENT OF KVS" fault（iOS 15 上报为 EXC_GUARD 模拟崩溃），所以不能在单例初始化时创建。
+    private var store: NSUbiquitousKeyValueStore {
+        return NSUbiquitousKeyValueStore.default
+    }
+    private let lock = NSLock()
+    private var observer: NSObjectProtocol?
+    private var isStarted = false
+    private var isApplyingCloudChange = false
+
+    private init() {}
+
+    private static let availabilityLock = NSLock()
+    private static var keyValueStoreAvailable = false
+
+    /// 构建是否带 iCloud KVS entitlement。由 AppDelegate 在启动时按 BuildConfig 设置；
+    /// 没有 entitlement 的构建里同步始终视为关闭，不会实例化 KVS。
+    static var isKeyValueStoreAvailable: Bool {
+        get {
+            self.availabilityLock.lock()
+            defer { self.availabilityLock.unlock() }
+            return self.keyValueStoreAvailable
+        }
+        set {
+            self.availabilityLock.lock()
+            self.keyValueStoreAvailable = newValue
+            self.availabilityLock.unlock()
+        }
+    }
+
+    static func isEnabled(defaults: UserDefaults = NagramDemoMode.userDefaults) -> Bool {
+        return self.isKeyValueStoreAvailable && !NagramDemoMode.isEnabled && defaults.bool(forKey: self.enabledKey)
+    }
+
+    func setEnabled(_ enabled: Bool, defaults: UserDefaults = NagramDemoMode.userDefaults) {
+        defaults.set(enabled, forKey: Self.enabledKey)
+        guard defaults === UserDefaults.standard else {
+            return
+        }
+        if enabled {
+            self.start()
+        } else {
+            self.stop()
+        }
+    }
+
+    func start() {
+        guard Self.isEnabled() else {
+            return
+        }
+
+        self.lock.lock()
+        if self.isStarted {
+            self.lock.unlock()
+            return
+        }
+        self.isStarted = true
+        self.lock.unlock()
+
+        self.observer = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: self.store,
+            queue: nil
+        ) { [weak self] notification in
+            self?.handleCloudChange(notification)
+        }
+
+        _ = self.store.synchronize()
+        self.mergeInitialValues()
+    }
+
+    private func stop() {
+        self.lock.lock()
+        let observer = self.observer
+        self.observer = nil
+        self.isStarted = false
+        self.lock.unlock()
+
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    func set(_ value: Any, forKey key: String, defaults: UserDefaults = NagramDemoMode.userDefaults) {
+        defaults.set(value, forKey: key)
+        guard defaults === UserDefaults.standard, Self.isEnabled() else {
+            return
+        }
+        self.start()
+        self.exportValue(value, forKey: key)
+    }
+
+    func removeObject(forKey key: String, defaults: UserDefaults = NagramDemoMode.userDefaults) {
+        defaults.removeObject(forKey: key)
+        guard defaults === UserDefaults.standard, Self.isEnabled() else {
+            return
+        }
+        self.start()
+        self.removeCloudValue(forKey: key)
+    }
+
+    private func mergeInitialValues() {
+        let cloudValues = self.store.dictionaryRepresentation
+        for (cloudKey, value) in cloudValues {
+            guard let localKey = NagramSettingsSyncKeys.localKey(fromCloudKey: cloudKey) else {
+                continue
+            }
+            self.applyCloudValue(value, forKey: localKey)
+        }
+
+        let localValues = UserDefaults.standard.dictionaryRepresentation()
+        for (localKey, value) in localValues {
+            guard NagramSettingsSyncKeys.shouldSync(localKey: localKey) else {
+                continue
+            }
+            let cloudKey = NagramSettingsSyncKeys.cloudKey(for: localKey)
+            if self.store.object(forKey: cloudKey) == nil {
+                self.store.set(self.cloudCompatibleValue(value), forKey: cloudKey)
+            }
+        }
+        _ = self.store.synchronize()
+    }
+
+    private func handleCloudChange(_ notification: Notification) {
+        guard Self.isEnabled() else {
+            return
+        }
+
+        guard let changedCloudKeys = notification.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String] else {
+            return
+        }
+
+        var didApplyChange = false
+        for cloudKey in changedCloudKeys {
+            guard let localKey = NagramSettingsSyncKeys.localKey(fromCloudKey: cloudKey) else {
+                continue
+            }
+            if let value = self.store.object(forKey: cloudKey) {
+                self.applyCloudValue(value, forKey: localKey)
+            } else {
+                self.applyCloudRemoval(forKey: localKey)
+            }
+            didApplyChange = true
+        }
+
+        if didApplyChange {
+            NotificationCenter.default.post(name: UserDefaults.didChangeNotification, object: UserDefaults.standard)
+        }
+    }
+
+    private func exportValue(_ value: Any, forKey key: String) {
+        guard NagramSettingsSyncKeys.shouldSync(localKey: key), !self.isApplyingCloudChange else {
+            return
+        }
+        self.store.set(self.cloudCompatibleValue(value), forKey: NagramSettingsSyncKeys.cloudKey(for: key))
+        _ = self.store.synchronize()
+    }
+
+    private func removeCloudValue(forKey key: String) {
+        guard NagramSettingsSyncKeys.shouldSync(localKey: key), !self.isApplyingCloudChange else {
+            return
+        }
+        self.store.removeObject(forKey: NagramSettingsSyncKeys.cloudKey(for: key))
+        _ = self.store.synchronize()
+    }
+
+    private func applyCloudValue(_ value: Any, forKey key: String) {
+        let previousValue = UserDefaults.standard.object(forKey: key)
+        self.isApplyingCloudChange = true
+        UserDefaults.standard.set(value, forKey: key)
+        self.isApplyingCloudChange = false
+        self.postRelatedNotifications(forKey: key, previousValue: previousValue, newValue: value)
+    }
+
+    private func applyCloudRemoval(forKey key: String) {
+        let previousValue = UserDefaults.standard.object(forKey: key)
+        self.isApplyingCloudChange = true
+        UserDefaults.standard.removeObject(forKey: key)
+        self.isApplyingCloudChange = false
+        self.postRelatedNotifications(forKey: key, previousValue: previousValue, newValue: nil)
+    }
+
+    private func cloudCompatibleValue(_ value: Any) -> Any {
+        if let value = value as? Int32 {
+            return NSNumber(value: value)
+        }
+        return value
+    }
+
+    private func postRelatedNotifications(forKey key: String, previousValue: Any?, newValue: Any?) {
+        if key == "nagram.regexFilters.rules" || key == "nagram.regexFilters.disabledPeerIds" {
+            NotificationCenter.default.post(name: .nagramRegexFiltersDidChange, object: nil)
+        }
+
+        let recentChatFoldersPrefix = "nagram.recentChatFolders."
+        if key.hasPrefix(recentChatFoldersPrefix) {
+            let startIndex = key.index(key.startIndex, offsetBy: recentChatFoldersPrefix.count)
+            guard let accountPeerId = Int64(String(key[startIndex...])) else {
+                return
+            }
+            let previousFilterIds = self.stringSet(from: previousValue)
+            let newFilterIds = self.stringSet(from: newValue)
+            for filterIdString in previousFilterIds.union(newFilterIds) {
+                guard let filterId = Int32(filterIdString) else {
+                    continue
+                }
+                NotificationCenter.default.post(
+                    name: .nagramRecentChatFolderSettingsDidChange,
+                    object: nil,
+                    userInfo: ["accountPeerId": accountPeerId, "filterId": filterId]
+                )
+            }
+        }
+    }
+
+    private func stringSet(from value: Any?) -> Set<String> {
+        if let values = value as? [String] {
+            return Set(values)
+        }
+        if let values = value as? [Any] {
+            return Set(values.compactMap { $0 as? String })
+        }
+        return Set()
+    }
+}
