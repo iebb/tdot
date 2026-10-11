@@ -17,7 +17,6 @@ swift_library(
         "//submodules/LottieSettings:LottieSettings",
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",
         "//submodules/Display:Display",
-        "//submodules/DeviceLocationManager:DeviceLocationManager",  # MARK: NEXTGRAM
         "//submodules/Postbox:Postbox",
         "//submodules/TelegramCore:TelegramCore",
         "//submodules/TelegramPresentationData:TelegramPresentationData",
@@ -141,8 +140,6 @@ swift_library(
         # MARK: NAGRAM
         "//Nagram/SettingsSignal:NagramSettingsSignal",
         "//Nagram/Settings:NagramSettings",
-        # MARK: NEXTGRAM
-        "//Nagram/ChatListFilters:NagramChatListFilters",
         "//Nagram/Strings:NagramStrings",
     ],
     visibility = [

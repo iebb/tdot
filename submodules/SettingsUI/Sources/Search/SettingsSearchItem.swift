@@ -71,7 +71,7 @@ extension SettingsSearchableItemIcon {
                 return PresentationResourcesSettings.premiumGift
             case .powerSaving:
                 return PresentationResourcesSettings.powerSaving
-            // MARK: NEXTGRAM
+            // MARK: NAGRAM
             case .nagram:
                 return PresentationResourcesSettings.settings
         }
@@ -257,7 +257,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
     
     private let edgeEffectView: EdgeEffectView
     
-    // MARK: NEXTGRAM — 查询 0 结果时的「无结果」占位
+    // MARK: NAGRAM — 查询 0 结果时的「无结果」占位
     private let emptyResultsTitleNode: ImmediateTextNode
     private let emptyResultsTextNode: ImmediateTextNode
     private var emptyResultsQuery: String?
@@ -309,7 +309,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
         
         self.edgeEffectView = EdgeEffectView()
         
-        // MARK: NEXTGRAM
+        // MARK: NAGRAM
         self.emptyResultsTitleNode = ImmediateTextNode()
         self.emptyResultsTitleNode.textAlignment = .center
         self.emptyResultsTitleNode.isUserInteractionEnabled = false
@@ -326,7 +326,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
         
         self.addSubnode(self.recentListNode)
         self.addSubnode(self.listNode)
-        // MARK: NEXTGRAM
+        // MARK: NAGRAM
         self.addSubnode(self.emptyResultsTitleNode)
         self.addSubnode(self.emptyResultsTextNode)
         self.view.addSubview(self.edgeEffectView)
@@ -470,7 +470,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
                 }
             }
             
-            // MARK: NEXTGRAM — 上游在新查询 0 结果时不刷新列表，会残留上一次查询的结果；这里改为清空并显示「无结果」。
+            // MARK: NAGRAM — 上游在新查询 0 结果时不刷新列表，会残留上一次查询的结果；这里改为清空并显示「无结果」。
             do {
                 let previousEntriesAndPresentationData = previousEntriesHolder.swap((entries, presentationData.theme, presentationData.strings))
                 let transition = preparedSettingsSearchContainerTransition(theme: presentationData.theme, strings: presentationData.strings, from: previousEntriesAndPresentationData?.0 ?? [], to: entries, interaction: interaction, isSearching: queryAndFoundItems != nil, forceUpdate: previousEntriesAndPresentationData?.1 !== presentationData.theme || previousEntriesAndPresentationData?.2 !== presentationData.strings)
@@ -524,7 +524,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
         }
     }
     
-    // MARK: NEXTGRAM
+    // MARK: NAGRAM
     private func updateEmptyResults() {
         guard let (layout, navigationBarHeight) = self.validLayout else {
             return
@@ -628,7 +628,7 @@ public final class SettingsSearchContainerNode: SearchDisplayControllerContentNo
             }
         }
         
-        // MARK: NEXTGRAM
+        // MARK: NAGRAM
         self.validLayout = (layout, navigationBarHeight)
         self.updateEmptyResults()
         

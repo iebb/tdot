@@ -3,9 +3,9 @@ import Security
 
 // MARK: NAGRAM — Local-only storage for LLM translation credentials.
 enum NagramTranslationLLMKeychain {
-    private static let service = NagramDemoMode.isEnabled
-        ? "jp.foxtea.nextgram.translation.llm.demo"
-        : "jp.foxtea.nextgram.translation.llm"
+    // MARK: NEXTGRAM — Keep credentials scoped to this app's private bundle identity.
+    private static let service = (Bundle.main.bundleIdentifier ?? "t")
+        + (NagramDemoMode.isEnabled ? ".translation.llm.demo" : ".translation.llm")
     private static let account = "api-key"
     private static let legacyDefaultsKey = "nagram.translationLLMAPIKey"
 

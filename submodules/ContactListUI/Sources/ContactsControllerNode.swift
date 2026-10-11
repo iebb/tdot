@@ -18,8 +18,8 @@ import ComponentFlow
 import SwiftUI
 import ContactsUI
 import EdgeEffect
-import UndoUI // MARK: NEXTGRAM
-import NagramStrings // MARK: NEXTGRAM
+import UndoUI // MARK: NAGRAM
+import NagramStrings // MARK: NAGRAM
 
 private final class ContextControllerContentSourceImpl: ContextControllerContentSource {
     let controller: ViewController
@@ -254,7 +254,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
             presentContactAccessPicker(context: context)
         }
         
-        // MARK: NEXTGRAM — 双向联系人说明
+        // MARK: NAGRAM — 双向联系人说明
         self.contactListNode.displayMutualContactInfo = { [weak self] in
             guard let self else {
                 return
@@ -314,7 +314,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         let title: String
         var leftButton: AnyComponentWithIdentity<NavigationButtonComponentEnvironment>?
         var rightButtons: [AnyComponentWithIdentity<NavigationButtonComponentEnvironment>]
-        // MARK: NEXTGRAM — 推入模式：左侧让给返回按钮，排序移到右侧
+        // MARK: NAGRAM — 推入模式：左侧让给返回按钮，排序移到右侧
         let nagramIsPushed = self.controller?.nagramIsPushed ?? false
         
         if let selectionState = self.contactListNode.selectionState {
@@ -352,7 +352,7 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                     self.controller?.addPressed()
                 }
             )))]
-            // MARK: NEXTGRAM
+            // MARK: NAGRAM
             if nagramIsPushed, let sortButton = leftButton {
                 leftButton = nil
                 rightButtons.insert(sortButton, at: 0)
@@ -361,12 +361,12 @@ final class ContactsControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         
         let primaryContent = ChatListHeaderComponent.Content(
             title: self.presentationData.strings.Contacts_Title,
-            navigationBackTitle: nagramIsPushed ? self.presentationData.strings.Common_Back : nil, // MARK: NEXTGRAM
+            navigationBackTitle: nagramIsPushed ? self.presentationData.strings.Common_Back : nil, // MARK: NAGRAM
             titleComponent: nil,
             chatListTitle: NetworkStatusTitle(text: title, activity: false, hasProxy: false, connectsViaProxy: false, isPasscodeSet: false, isManuallyLocked: false, peerStatus: nil),
             leftButton: leftButton,
             rightButtons: rightButtons,
-            backPressed: nagramIsPushed ? { [weak self] in // MARK: NEXTGRAM
+            backPressed: nagramIsPushed ? { [weak self] in // MARK: NAGRAM
                 self?.controller?.dismiss()
             } : nil
         )

@@ -99,10 +99,10 @@ public enum ContactsPeerItemActionIcon {
     case voiceCall
     case videoCall
     case more
-    case mutualContact // MARK: NEXTGRAM
+    case mutualContact // MARK: NAGRAM
 }
 
-// MARK: NEXTGRAM — 双向联系人图标（对齐 Android Nagram UserCell 的 swap_horiz），按颜色缓存。
+// MARK: NAGRAM — 双向联系人图标（对齐 Android Nagram UserCell 的 swap_horiz），按颜色缓存。
 private let nagramMutualContactIconCache = Atomic<(color: UIColor, image: UIImage)?>(value: nil)
 
 private func nagramMutualContactIcon(theme: PresentationTheme) -> UIImage? {
@@ -944,7 +944,7 @@ public class ContactsPeerItemNode: ItemListRevealOptionsItemNode {
                             image = PresentationResourcesItemList.videoCallIcon(theme)
                         case .more:
                             image = PresentationResourcesItemList.videoCallIcon(theme)
-                        case .mutualContact: // MARK: NEXTGRAM
+                        case .mutualContact: // MARK: NAGRAM
                             image = nagramMutualContactIcon(theme: theme)
                     }
                     self.type = icon

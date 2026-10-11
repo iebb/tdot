@@ -10,8 +10,6 @@ swift_library(
         "-warnings-as-errors",
     ],
     deps = [
-        # MARK: NEXTGRAM — Nextgram defaults for phone sharing and device contact sync.
-        "//Nagram/Settings:NagramSettings",
         "//submodules/SSignalKit/SwiftSignalKit",
         "//submodules/AsyncDisplayKit",
         "//submodules/Display",

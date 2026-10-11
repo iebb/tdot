@@ -30,7 +30,6 @@ import ChatListHeaderNoticeComponent
 import ChatListFilterTabContainerNode
 import GlassControls
 import NagramSettings
-import NagramChatListFilters // MARK: NEXTGRAM
 
 // MARK: NAGRAM — 首页文件夹标签支持仅文字、仅图标和图标加文字。
 private func nagramFolderTabTitle(
@@ -194,11 +193,6 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
     public private(set) var isSwitchingCurrentItemFilterByDragging: Bool = false
     public var currentItemFilter: ChatListFilterTabEntryId {
         return self.currentItemNode.chatListFilter.flatMap { .filter($0.id) } ?? .all
-    }
-
-    // MARK: NAGRAM — Keep an asynchronously loading quick filter selected in the tab UI.
-    var requestedItemFilter: ChatListFilterTabEntryId {
-        return self.pendingItemNode?.0 ?? self.currentItemFilter
     }
     
     private var didSetupContentOffset = false
@@ -980,30 +974,6 @@ public final class ChatListContainerNode: ASDisplayNode, ASGestureRecognizerDele
             }
         }
     }
-
-    // MARK: NEXTGRAM — Replace and select the hidden compound filter without waiting for folder reloading.
-    func applyNagramQuickFilter(_ filter: ChatListFilter?) {
-        var updatedFilters = self.availableFilters.filter { filter in
-            if case let .filter(id) = filter.id {
-                return !nagramIsCombinedChatListFilterId(id)
-            }
-            return true
-        }
-        let targetId: ChatListFilterTabEntryId
-        if let filter {
-            let containerFilter = ChatListContainerNodeFilter.filter(filter)
-            updatedFilters.append(containerFilter)
-            targetId = containerFilter.id
-        } else {
-            if !updatedFilters.contains(where: { $0.id == .all }) {
-                updatedFilters.insert(.all, at: 0)
-            }
-            targetId = .all
-        }
-
-        self.updateAvailableFilters(updatedFilters, limit: self.filtersLimit, fallbackId: targetId)
-        self.switchToFilter(id: targetId, animated: false)
-    }
     
     public func updateEnableAdjacentFilterLoading(_ value: Bool) {
         if value != self.enableAdjacentFilterLoading {
@@ -1689,12 +1659,11 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
 
                 // The folder tabs describe the main list: a forum open inline has no folder of its own.
                 let selectedTab: HorizontalTabsComponent.Tab.Id
-                // MARK: NEXTGRAM — Keep quick-filter selection separate from the displayed inline topic list.
-                switch self.mainContainerNode.requestedItemFilter {
+                switch self.mainContainerNode.currentItemFilter {
                 case .all:
                     selectedTab = AnyHashable(Int32.min)
                 case let .filter(id):
-                    selectedTab = nagramIsCombinedChatListFilterId(id) ? AnyHashable(Int32.min) : AnyHashable(id) // MARK: NEXTGRAM
+                    selectedTab = AnyHashable(id)
                 }
                 
                 let isEditing = self.isReorderingFilters || (self.mainContainerNode.currentItemNode.currentState.editing && !self.didBeginSelectingChatsWhileEditing)
@@ -1843,16 +1812,6 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         } else {
             shouldHideHomeSearchBar = false
         }
-
-        // MARK: NEXTGRAM — The filter picker is attached only to the root “Chats” title.
-        let nagramTitlePressed: (() -> Void)?
-        if case .chatList(groupId: .root) = self.location, NagramSettings.shared.chatListQuickFiltersEnabled {
-            nagramTitlePressed = { [weak self] in
-                self?.controller?.openNagramChatListFilterPicker()
-            }
-        } else {
-            nagramTitlePressed = nil
-        }
         
         let navigationBarSize = self.navigationBarView.update(
             transition: transition,
@@ -1907,8 +1866,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
                         return
                     }
                     controller.allowAutomaticOrder()
-                },
-                titlePressed: nagramTitlePressed
+                }
             )),
             environment: {},
             containerSize: layout.size

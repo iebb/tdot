@@ -12,7 +12,7 @@ swift_library(
     deps = [
         # MARK: NAGRAM — 权限警告隐藏开关
         "//Nagram/SettingsSignal:NagramSettingsSignal",
-        "//Nagram/Strings:NagramStrings", # MARK: NEXTGRAM — Nagram mutual-contact explanation.
+        "//Nagram/Strings:NagramStrings",
         "//submodules/SSignalKit/SwiftSignalKit:SwiftSignalKit",
         "//submodules/LottieSettings:LottieSettings",
         "//submodules/AsyncDisplayKit:AsyncDisplayKit",

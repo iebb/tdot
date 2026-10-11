@@ -88,8 +88,6 @@ swift_library(
         "//Nagram/Settings:NagramSettings",
         # MARK: NEXTGRAM
         "//Nagram/MessageHistory:NagramMessageHistory",
-        # MARK: NEXTGRAM — Default formatting for newly composed messages and captions.
-        "//Nagram/MessageFormatting:NagramMessageFormatting",
         # MARK: NAGRAM — offline screenshot fixtures.
         "//Nagram/Demo:NagramDemo",
         "//Nagram/LinkMetadata:NagramLinkMetadata",

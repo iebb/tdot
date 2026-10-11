@@ -9,7 +9,7 @@ import SettingsUI
 import NagramSettingsUI
 import PeerInfoStoryGridScreen
 import CallListUI
-import ContactListUI // MARK: NEXTGRAM
+import ContactListUI // MARK: NAGRAM
 import PassportUI
 import AccountUtils
 import OverlayStatusController
@@ -85,7 +85,7 @@ extension PeerInfoScreenNode {
                     return
                 }
                 if let controller = self.controller, let navigationController = controller.navigationController as? NavigationController {
-                    self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer), keepStack: self.nagramChatKeepStack(navigationController: navigationController))) // MARK: NEXTGRAM
+                    self.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: self.context, chatLocation: .peer(peer), keepStack: self.nagramChatKeepStack(navigationController: navigationController))) // MARK: NAGRAM
                 }
             })
         case .recentCalls:
@@ -163,7 +163,7 @@ extension PeerInfoScreenNode {
             if let controller = self.context.sharedContext.makeDebugSettingsController(context: self.context) {
                 push(controller)
             }
-        // MARK: NEXTGRAM — 联系人 tab 被隐藏时的入口
+        // MARK: NAGRAM — 联系人 tab 被隐藏时的入口
         case .nagramContacts:
             push(ContactsController(context: self.context, nagramIsPushed: true))
         case .appearance:
@@ -243,22 +243,22 @@ extension PeerInfoScreenNode {
                     return
                 }
                 // MARK: NAGRAM
-                var maximumAvailableAccounts = nextgramMaximumNumberOfAccounts // MARK: NEXTGRAM
+                var maximumAvailableAccounts = maximumNumberOfAccounts
                 if accountAndPeer?.1.isPremium == true && !strongSelf.context.account.testingEnvironment {
-                    maximumAvailableAccounts = nextgramMaximumPremiumNumberOfAccounts // MARK: NEXTGRAM
+                    maximumAvailableAccounts = maximumPremiumNumberOfAccounts
                 }
                 var count: Int = 1
                 for (accountContext, peer, _) in accountsAndPeers {
                     if !accountContext.account.testingEnvironment {
                         if peer.isPremium {
-                            maximumAvailableAccounts = nextgramMaximumPremiumNumberOfAccounts // MARK: NEXTGRAM
+                            maximumAvailableAccounts = maximumPremiumNumberOfAccounts
                         }
                         count += 1
                     }
                 }
                 
                 if count >= maximumAvailableAccounts {
-                    // MARK: NEXTGRAM — This branch is bypassed when unlimited accounts are enabled.
+                    // MARK: NAGRAM — Both account limits are 10, so Premium cannot raise this limit.
                     strongSelf.controller?.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.controller?.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.Premium_MaxAccountsFinalText("\(maximumAvailableAccounts)").string, actions: [
                         TextAlertAction(type: .defaultAction, title: strongSelf.presentationData.strings.Common_OK, action: {})
                     ], parseMarkdown: true), in: .window(.root))
@@ -364,7 +364,7 @@ extension PeerInfoScreenNode {
         })
     }
     
-    // MARK: NEXTGRAM — 设置 tab 被隐藏时设置页是推入的独立页面，从它打开聊天要保留导航栈才能返回到它。
+    // MARK: NAGRAM — 设置 tab 被隐藏时设置页是推入的独立页面，从它打开聊天要保留导航栈才能返回到它。
     private func nagramChatKeepStack(navigationController: NavigationController) -> NavigateToChatKeepStack {
         guard let controller = self.controller else {
             return .default
@@ -378,7 +378,7 @@ extension PeerInfoScreenNode {
         
         let context = self.context
         let navigationController = self.controller?.navigationController as? NavigationController
-        let keepStack: NavigateToChatKeepStack = navigationController.flatMap { self.nagramChatKeepStack(navigationController: $0) } ?? .default // MARK: NEXTGRAM
+        let keepStack: NavigateToChatKeepStack = navigationController.flatMap { self.nagramChatKeepStack(navigationController: $0) } ?? .default // MARK: NAGRAM
         self.tipsPeerDisposable.set((self.context.engine.peers.resolvePeerByName(name: self.presentationData.strings.Settings_TipsUsername, referrer: nil)
         |> mapToSignal { result -> Signal<EnginePeer?, NoError> in
             guard case let .result(result) = result else {
@@ -389,7 +389,7 @@ extension PeerInfoScreenNode {
         |> deliverOnMainQueue).startStrict(next: { [weak controller] peer in
             controller?.dismiss()
             if let peer = peer, let navigationController = navigationController {
-                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), keepStack: keepStack)) // MARK: NEXTGRAM
+                context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: context, chatLocation: .peer(peer), keepStack: keepStack)) // MARK: NAGRAM
             }
         }))
     }

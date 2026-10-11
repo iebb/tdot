@@ -136,10 +136,10 @@ public class ContactsController: ViewController {
     }
     
     private let sortButton: SortHeaderButton
-    // MARK: NEXTGRAM — 从设置页推入（联系人 tab 被隐藏时），显示返回按钮
+    // MARK: NAGRAM — 从设置页推入（联系人 tab 被隐藏时），显示返回按钮
     let nagramIsPushed: Bool
     
-    public init(context: AccountContext, nagramIsPushed: Bool = false) { // MARK: NEXTGRAM
+    public init(context: AccountContext, nagramIsPushed: Bool = false) { // MARK: NAGRAM
         self.context = context
         self.nagramIsPushed = nagramIsPushed
         

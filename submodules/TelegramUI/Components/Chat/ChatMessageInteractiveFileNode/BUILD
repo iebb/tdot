@@ -46,7 +46,6 @@ swift_library(
         "//submodules/AnimatedCountLabelNode",
         "//submodules/AudioWaveform",
         "//submodules/DeviceProximity",
-        "//Nagram/Settings:NagramSettings", # MARK: NAGRAM // MARK: NEXTGRAM
     ],
     visibility = [
         "//visibility:public",

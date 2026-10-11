@@ -14,8 +14,7 @@ import ActionPanelComponent
 import ChatFolderLinkPreviewScreen
 import EdgeEffect
 import ComponentDisplayAdapters
-import NagramChatListFilters // MARK: NEXTGRAM
-import NagramSettings // MARK: NEXTGRAM
+import NagramSettings // MARK: NAGRAM
 
 final class ChatListContainerItemNode: ASDisplayNode {
     private final class TopPanelItem {
@@ -125,9 +124,6 @@ final class ChatListContainerItemNode: ASDisplayNode {
                     let subject: ChatListEmptyNode.Subject
                     if let filter = filter {
                         var showEdit = true
-                        if nagramIsCombinedChatListFilterId(filter.id) {
-                            showEdit = false // MARK: NEXTGRAM — The local filter is edited from the Chats title.
-                        }
                         if case let .filter(_, _, _, data) = filter {
                             if data.excludeRead && data.includePeers.peers.isEmpty && data.includePeers.pinnedPeers.isEmpty {
                                 showEdit = false
@@ -457,7 +453,7 @@ final class ChatListContainerItemNode: ASDisplayNode {
         let edgeEffectFrame = CGRect(origin: CGPoint(x: 0.0, y: size.height - edgeEffectHeight), size: CGSize(width: size.width, height: edgeEffectHeight))
         transition.updateFrame(view: self.edgeEffectView, frame: edgeEffectFrame)
         self.edgeEffectView.update(content: self.presentationData.theme.list.plainBackgroundColor, alpha: 0.6, rect: edgeEffectFrame, edge: .bottom, edgeSize: min(edgeEffectFrame.height, 40.0), transition: ComponentTransition(transition))
-        // MARK: NEXTGRAM — a lone search button leaves the rest of this strip over tappable chats.
+        // MARK: NAGRAM — a lone search button leaves the rest of this strip over tappable chats.
         let hidesEdgeEffect = NagramSettings.shared.bottomBarSettings.showsOnlySearchButton
         transition.updateAlpha(layer: self.edgeEffectView.layer, alpha: edgeEffectHeight > 21.0 && !hidesEdgeEffect ? 1.0 : 0.0)
     }

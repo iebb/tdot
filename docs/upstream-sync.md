@@ -1,13 +1,17 @@
-# 上游同步记录
+# Nagram upstream and the t. overlay
 
-## Nagram / Telegram 13.0
+The canonical app base is [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS), currently `ecc7b4df3ce338d5ad6f4f48c8b46dbcb44d192c`. `versions.json` records the revision. The initial imported snapshot was `db0722d6`.
 
-- 上游仓库：<https://github.com/NextAlone/Nagram-iOS>
-- 同步至 `71206814ecbe42844a060f5c0253d370f7ada65a`（2026-10-10）。
-- 初始源码对应的上游基线为 `cb7f8462aec9733301eb73caa6be3d68f2780acf`（12.9.3）。Nextgram 最初整包上传，未保留上游历史；此次以该基线进行三方集成，并接回上游历史，供后续正常合并。
-- 上游基础版本 `13.0` 在 Nextgram 中规范为 `13.0.0`；本轮 Nextgram 版本从 `13.0.0.1` 开始，后续发布递增第四段。
-- 同步 Xcode 27、Bazel 9.2、依赖修订及上游功能和修复；Actions 使用 `xcode-27` 镜像。
-- 保留 Nextgram 品牌、设置分组、聊天筛选、删除消息拦截与编辑历史、音乐搜索、使用协议和四种兼容包发布流程。
-- 不引入上游 TestFlight 或 Telegram 频道自动发布流程；API hash 继续仅通过仓库 Actions Secrets 注入。
+t. keeps its independent branding, private API and signing configuration, App Store metadata, CI, and these Ayu features on top:
 
-Windows 环境不能执行 iOS 全量编译或真机安装。静态检查不等同于 app 构建成功；IPA 是否可用须以 macOS Actions 构建和重签后实测为准。
+- Configurable Ghost Mode for read, typing/upload and online activity, with optional delayed cloud sending.
+- Local preservation of deleted and edited messages, preservation rules, and history import/export.
+- Locally loaded chats after leaving or being kicked.
+- Optional secret-chat screenshots and local expiration of TTL media.
+- Message filters, ad hiding, edited/deleted markers, and local Premium UI and limits.
+
+AyuSync remains deferred. Screenshot notifications remain enabled; local Premium does not grant server subscription features.
+
+Unrelated app behavior follows Nagram. The original fork's combined chat filters, custom sorting, music controls, default text formatting, contact defaults, background-location notification fallback and extra account limits are removed. The app uses its signed notification service extension and normal APNs registration.
+
+For every update, apply the changes after the recorded Nagram revision onto `master`, preserve this overlay and private configuration, and review overlaps. Keep the README's source attribution current without adding the former product name or restoring its removed feature list. Run a full app build with all six signed extensions before accepting a release. Never merge upstream commit history into the reset public history or publish a compiled app, clear compiler cache, identifiers or credentials as a public artifact.

@@ -86,7 +86,7 @@ swift_library(
         "//submodules/ContextUI:ContextUI",
         "//submodules/Markdown:Markdown",
         "//submodules/UndoUI:UndoUI",
-        # MARK: NEXTGRAM — Nagram 设置项加入设置搜索
+        # MARK: NAGRAM — Nagram 设置项加入设置搜索
         "//Nagram/SettingsUI:NagramSettingsUI",
         "//submodules/DeleteChatPeerActionSheetItem:DeleteChatPeerActionSheetItem",
         "//submodules/PhoneNumberFormat:PhoneNumberFormat",

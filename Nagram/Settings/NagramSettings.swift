@@ -91,26 +91,9 @@ public enum NagramDeletedMessageIndicatorStyle: String {
     case trashAndText = "both"
 }
 
-public enum NagramDefaultMessageFormat: String, CaseIterable {
-    case plain
-    case bold
-    case italic
-    case monospace
-    case underline
-    case strikethrough
-    case spoiler
-}
-
 public enum NagramGlassTransparencyMode: String {
     case system
     case custom
-}
-
-public enum NagramLocationIndicatorMode: String {
-    case always
-    case hideAll = "all"
-    case hideHome = "home"
-    case hideChat = "chat"
 }
 
 public enum NagramRoundVideoCamera: String {
@@ -228,10 +211,6 @@ public final class NagramSettings {
     /// 仅放宽客户端 Premium 界面和本地额度判断；服务端权益仍取决于真实订阅。
     @NagramDefault("nagram.localPremiumEnabled", false)
     public var localPremiumEnabled: Bool
-    @NagramDefault("nagram.unlimitedAccountsEnabled", false)
-    public var unlimitedAccountsEnabled: Bool
-    @NagramDefault("nagram.locationIndicatorMode", NagramLocationIndicatorMode.always.rawValue)
-    public var locationIndicatorMode: String
     @NagramDefault("nagram.usageAgreementAcceptedVersion", Int32(0))
     public var usageAgreementAcceptedVersion: Int32
     @NagramDefault("nagram.antiRecallWhitelist", "")
@@ -270,12 +249,6 @@ public final class NagramSettings {
     public var disableTypingStatus: Bool
     @NagramDefault("nagram.disableOnlineStatus", false)
     public var disableOnlineStatus: Bool
-    /// 新增联系人时，默认不把自己的手机号加入对方可见的隐私例外。
-    @NagramDefault("nagram.disableContactPhoneSharingByDefault", false)
-    public var disableContactPhoneSharingByDefault: Bool
-    /// 新增联系人时，默认不同时写入 iOS 通讯录。
-    @NagramDefault("nagram.disableContactSyncToPhoneByDefault", false)
-    public var disableContactSyncToPhoneByDefault: Bool
 
     public var suppressReadReceipts: Bool {
         return self.ghostModeEnabled || self.disableReadReceipts
@@ -302,13 +275,7 @@ public final class NagramSettings {
     @NagramDefault("nagram.skipSensitiveContentWarning", false)
     public var skipSensitiveContentWarning: Bool
 
-    /// Ignore client-side iOS channel and message restriction markers.
-    @NagramDefault("nagram.ignoreContentRestrictions", false)
-    public var ignoreContentRestrictions: Bool
 
-    // MARK: NEXTGRAM — APNs-free best-effort notification fallback for re-signed builds.
-    @NagramDefault("nagram.localNotificationFallbackEnabled", false)
-    public var localNotificationFallbackEnabled: Bool
 
     // MARK: 波次 3 批 A — 纯 UI 单点开关
     /// 隐藏消息反应
@@ -526,33 +493,6 @@ public final class NagramSettings {
     /// 紧凑对话列表（压缩列表行高）
     @NagramDefault("nagram.chatListCompact", false)
     public var chatListCompact: Bool
-    /// 点击首页“聊天”标题打开组合筛选面板。
-    @NagramDefault("nagram.chatListQuickFiltersEnabled", true)
-    public var chatListQuickFiltersEnabled: Bool
-    /// 组合筛选的已读状态（"all" / "unread" / "read"）。
-    @NagramDefault("nagram.chatListQuickFilterReadMode", "all")
-    public var chatListQuickFilterReadMode: String
-    /// 组合筛选的会话类型位掩码（联系人、陌生人、机器人、群组、频道）。
-    @NagramDefault("nagram.chatListQuickFilterPeerTypes", Int32(31))
-    public var chatListQuickFilterPeerTypes: Int32
-    /// 保留置顶顺序，并将其余未读会话排在已读会话之前。
-    @NagramDefault("nagram.chatListUnreadFirst", false)
-    public var chatListUnreadFirst: Bool
-    /// 保留置顶顺序，并将其余会话按最后消息时间从旧到新排列。
-    @NagramDefault("nagram.chatListOldestFirst", false)
-    public var chatListOldestFirst: Bool
-    /// 搜索页显示顶部最近联系人时，隐藏下方重复的最近搜索列表。
-    @NagramDefault("nagram.chatSearchHideRecentListWhenTopPeersVisible", false)
-    public var chatSearchHideRecentListWhenTopPeersVisible: Bool
-    /// 音乐播放列表副标题中显示文件大小。
-    @NagramDefault("nagram.musicPlaylistShowFileSize", false)
-    public var musicPlaylistShowFileSize: Bool
-    /// 音乐封面右下角显示未下载 / 下载中的状态。
-    @NagramDefault("nagram.musicPlaylistShowDownloadStatus", true)
-    public var musicPlaylistShowDownloadStatus: Bool
-    /// 将已启用的自动删除时长显示在聊天头像右下角，不占用输入框。
-    @NagramDefault("nagram.chatAutoremoveBadgeEnabled", true)
-    public var chatAutoremoveBadgeEnabled: Bool
     /// 最近会话快捷入口
     @NagramDefault("nagram.recentChatsEnabled", false)
     public var recentChatsEnabled: Bool
@@ -650,42 +590,6 @@ public final class NagramSettings {
     /// 回车键发送消息
     @NagramDefault("nagram.sendWithReturnKey", false)
     public var sendWithReturnKey: Bool
-    /// NEXTGRAM — Apply a default style only to newly composed, otherwise unformatted messages.
-    @NagramDefault("nagram.defaultMessageFormat", "plain")
-    public var defaultMessageFormat: String
-
-    public var defaultMessageFormatValue: NagramDefaultMessageFormat {
-        return NagramDefaultMessageFormat(rawValue: self.defaultMessageFormat) ?? .plain
-    }
-    /// 选中文本时显示文字样式工具栏
-    @NagramDefault("nagram.showTextStyleToolbar", true)
-    public var showTextStyleToolbar: Bool
-    /// 发送时自动插入中英文空格
-    @NagramDefault("nagram.enablePanguOnSending", false)
-    public var enablePanguOnSending: Bool
-    /// 编辑时自动插入中英文空格
-    @NagramDefault("nagram.enablePanguOnEditing", false)
-    public var enablePanguOnEditing: Bool
-    /// 接收展示时自动插入中英文空格
-    @NagramDefault("nagram.enablePanguOnReceiving", false)
-    public var enablePanguOnReceiving: Bool
-    /// 更宽的频道帖子
-    @NagramDefault("nagram.wideChannelPosts", false)
-    public var wideChannelPosts: Bool
-    /// 隐藏动态（Stories）
-    @NagramDefault("nagram.hideStories", false)
-    public var hideStories: Bool
-
-    @NagramDefault("nagram.hideTopStories", false)
-    public var hideTopStories: Bool
-    @NagramDefault("nagram.disableStoryCameraSwipe", false)
-    public var disableStoryCameraSwipe: Bool
-    @NagramDefault("nagram.disableChatAvatarStories", false)
-    public var disableChatAvatarStories: Bool
-
-    public var disableStoryCameraSwipeEffective: Bool {
-        return self.hideStories || self.disableStoryCameraSwipe
-    }
 
     public var disableChatAvatarStoriesEffective: Bool {
         return self.hideStories || self.disableChatAvatarStories
@@ -809,10 +713,6 @@ public extension NagramSettings {
 
     var glassTransparencyModeValue: NagramGlassTransparencyMode {
         return NagramGlassTransparencyMode(rawValue: self.glassTransparencyMode) ?? .system
-    }
-
-    var locationIndicatorModeValue: NagramLocationIndicatorMode {
-        return NagramLocationIndicatorMode(rawValue: self.locationIndicatorMode) ?? .always
     }
 
     var roundVideoCameraValue: NagramRoundVideoCamera {

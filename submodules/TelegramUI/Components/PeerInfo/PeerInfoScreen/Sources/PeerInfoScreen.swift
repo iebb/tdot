@@ -279,7 +279,7 @@ enum PeerInfoSettingsSection {
     case nagram
     // MARK: NAGRAM — Debug fallback when the bottom tab bar is hidden.
     case nagramDebug
-    // MARK: NEXTGRAM — 联系人 tab 被隐藏时的入口
+    // MARK: NAGRAM — 联系人 tab 被隐藏时的入口
     case nagramContacts
 }
 
@@ -390,7 +390,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
     let addMemberDisposable = MetaDisposable()
     let preloadHistoryDisposable = MetaDisposable()
     let nagramProfileSettingsDisposable = MetaDisposable() // MARK: NAGRAM
-    // MARK: NEXTGRAM — 设置页联系人 / 通话记录入口随底栏设置刷新
+    // MARK: NAGRAM — 设置页联系人 / 通话记录入口随底栏设置刷新
     private var nagramShowCallsTab: Bool = CallListSettings.defaultSettings.showTab
     private var nagramTabEntriesDisposable: Disposable?
     var shareStatusDisposable: MetaDisposable?
@@ -2617,7 +2617,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             self?.requestLayout(animated: false)
         }))
         
-        // MARK: NEXTGRAM — 设置页联系人 / 通话记录入口随底栏设置刷新
+        // MARK: NAGRAM — 设置页联系人 / 通话记录入口随底栏设置刷新
         if self.isSettings {
             let showCallsTab = context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.callListSettings])
             |> map { sharedData -> Bool in
@@ -2770,7 +2770,7 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         self.addMemberDisposable.dispose()
         self.preloadHistoryDisposable.dispose()
         self.nagramProfileSettingsDisposable.dispose() // MARK: NAGRAM
-        self.nagramTabEntriesDisposable?.dispose() // MARK: NEXTGRAM
+        self.nagramTabEntriesDisposable?.dispose() // MARK: NAGRAM
         self.resolvePeerByNameDisposable?.dispose()
         self.navigationActionDisposable.dispose()
         self.enqueueMediaMessageDisposable.dispose()
@@ -5622,7 +5622,6 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             insets.right += sectionInset
             
             let editItems = (self.isSettings || self.isMyProfile) ? settingsEditingItems(data: self.data, state: self.state, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isMyProfile: self.isMyProfile) : editingItems(data: self.data, boostStatus: self.boostStatus, state: self.state, chatLocation: self.chatLocation, context: self.context, presentationData: self.presentationData, interaction: self.interaction)
-            // MARK: NEXTGRAM — Sync Nagram's hidden-tab navigation entries.
             var items = self.isSettings ? settingsItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, isExpanded: self.headerNode.isAvatarExpanded, nagramShowCallsTab: self.nagramShowCallsTab) : infoItems(data: self.data, context: self.context, presentationData: self.presentationData, interaction: self.interaction, reactionSourceMessageId: self.reactionSourceMessageId, canDeleteReaction: self.canDeleteReaction, callMessages: self.callMessages, chatLocation: self.chatLocation, isOpenedFromChat: self.isOpenedFromChat, isMyProfile: self.isMyProfile)
             
             // MARK: NAGRAM — Expose user-selected group settings items on the group profile.
@@ -7499,7 +7498,7 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
         let productionAccountCount = other.reduce(1, { count, account in
             return account.0.account.testingEnvironment ? count : count + 1
         })
-        if addAccount == nil || productionAccountCount < nextgramMaximumNumberOfAccounts { // MARK: NEXTGRAM
+        if addAccount == nil || productionAccountCount < maximumNumberOfAccounts {
             items.append(.action(ContextMenuActionItem(text: strings.Settings_AddAccount, icon: { theme in
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Add"), color: theme.contextMenu.primaryColor)
             }, action: { [weak self] _, f in

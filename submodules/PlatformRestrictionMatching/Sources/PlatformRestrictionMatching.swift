@@ -18,10 +18,6 @@ public extension EngineRawMessage {
 
 public extension RestrictedContentMessageAttribute {
     func platformText(platform: String, contentSettings: ContentSettings) -> String? {
-        // MARK: NEXTGRAM — Keep message restrictions consistent with peer restrictions.
-        if contentSettings.ignoreContentRestrictionReasons.contains("*") {
-            return nil
-        }
         for rule in self.rules {
             if rule.reason == "sensitive" {
                 continue

@@ -16,7 +16,6 @@ import WebUI
 import LegacyChatHeaderPanelComponent
 import ComponentFlow
 import ComponentDisplayAdapters
-import NagramSettings // MARK: NAGRAM // MARK: NEXTGRAM
 
 extension ChatControllerImpl {
     func updateRightNavigationButtons(presentationInterfaceState: ChatPresentationInterfaceState, transition: ContainedViewLayoutTransition) {
@@ -499,21 +498,6 @@ func updateChatPresentationInterfaceStateImpl(
     }
     
     selfController.presentationInterfaceState = updatedChatPresentationInterfaceState
-
-    // MARK: NAGRAM
-    // MARK: NEXTGRAM — Android-style compact TTL badge on the navigation avatar.
-    if let avatarNode = selfController.avatarNode {
-        let timeout = updatedChatPresentationInterfaceState.autoremoveTimeout
-        let badgeText: String?
-        if NagramSettings.shared.chatAutoremoveBadgeEnabled, let timeout, timeout > 0 {
-            badgeText = shortTimeIntervalString(strings: selfController.presentationData.strings, value: timeout)
-        } else {
-            badgeText = nil
-        }
-        avatarNode.setAutoremoveBadge(text: badgeText, theme: selfController.presentationData.theme, action: { [weak selfController] in
-            selfController?.interfaceInteraction?.setupMessageAutoremoveTimeout()
-        })
-    }
     
     selfController.updateSlowmodeStatus()
     

@@ -79,8 +79,6 @@ public final class ChatListNavigationBar: Component {
     public let activateSearch: (NavigationBarSearchContentNode) -> Void
     public let openStatusSetup: (UIView) -> Void
     public let allowAutomaticOrder: () -> Void
-    // MARK: NEXTGRAM — Optional action for the root chat-list title.
-    public let titlePressed: (() -> Void)?
     
     public init(
         context: AccountContext,
@@ -108,8 +106,7 @@ public final class ChatListNavigationBar: Component {
         hasOwnGlassContainer: Bool = true,
         activateSearch: @escaping (NavigationBarSearchContentNode) -> Void,
         openStatusSetup: @escaping (UIView) -> Void,
-        allowAutomaticOrder: @escaping () -> Void,
-        titlePressed: (() -> Void)? = nil
+        allowAutomaticOrder: @escaping () -> Void
     ) {
         self.context = context
         self.theme = theme
@@ -137,7 +134,6 @@ public final class ChatListNavigationBar: Component {
         self.activateSearch = activateSearch
         self.openStatusSetup = openStatusSetup
         self.allowAutomaticOrder = allowAutomaticOrder
-        self.titlePressed = titlePressed
     }
 
     public static func ==(lhs: ChatListNavigationBar, rhs: ChatListNavigationBar) -> Bool {
@@ -202,9 +198,6 @@ public final class ChatListNavigationBar: Component {
             return false
         }
         if lhs.hasEdgeEffect != rhs.hasEdgeEffect {
-            return false
-        }
-        if (lhs.titlePressed == nil) != (rhs.titlePressed == nil) {
             return false
         }
         if lhs.edgeEffectColor != rhs.edgeEffectColor {
@@ -524,8 +517,7 @@ public final class ChatListNavigationBar: Component {
                         return
                     }
                     component.context.sharedContext.appLockContext.lock()
-                },
-                titlePressed: component.titlePressed
+                }
             )
             
             let animationHint = transition.userData(AnimationHint.self)
@@ -734,8 +726,7 @@ public final class ChatListNavigationBar: Component {
                     hasOwnGlassContainer: component.hasOwnGlassContainer,
                     activateSearch: component.activateSearch,
                     openStatusSetup: component.openStatusSetup,
-                    allowAutomaticOrder: component.allowAutomaticOrder,
-                    titlePressed: component.titlePressed
+                    allowAutomaticOrder: component.allowAutomaticOrder
                 )
                 if let currentLayout = self.currentLayout, let headerComponent = self.currentHeaderComponent {
                     let headerComponent = ChatListHeaderComponent(
@@ -754,8 +745,7 @@ public final class ChatListNavigationBar: Component {
                         theme: headerComponent.theme,
                         strings: headerComponent.strings,
                         openStatusSetup: headerComponent.openStatusSetup,
-                        toggleIsLocked: headerComponent.toggleIsLocked,
-                        titlePressed: headerComponent.titlePressed
+                        toggleIsLocked: headerComponent.toggleIsLocked
                     )
                     self.currentHeaderComponent = headerComponent
                     

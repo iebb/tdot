@@ -416,9 +416,6 @@ private func nagramGroups(
     setHideCalls: @escaping (Bool) -> Void,
     sensitiveContentConfiguration: @escaping () -> ContentSettingsConfiguration?,
     setSensitiveContentEnabled: @escaping (Bool) -> Void,
-    latencyTestAction: @escaping () -> Void,
-    setLocalNotificationFallbackEnabled: @escaping (Bool) -> Void,
-    notificationDiagnosticsAction: @escaping () -> Void,
     bottomBarLayoutAction: @escaping () -> Void,
     antiRecallRulesAction: @escaping () -> Void,
     exportDeletedMessagesAction: @escaping () -> Void,
@@ -451,23 +448,6 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.ChatListFolderTabsCompact", get: { NagramSettings.shared.chatListFolderTabsCompact }, set: { NagramSettings.shared.chatListFolderTabsCompact = $0 }),
             .toggle(titleKey: "Nagram.HideFolderUnreadCount", get: { NagramSettings.shared.hideFolderUnreadCount }, set: { NagramSettings.shared.hideFolderUnreadCount = $0 }),
             .toggle(titleKey: "Nagram.HideAllChatsFolder", get: { NagramSettings.shared.hideAllChatsFolder }, set: { NagramSettings.shared.hideAllChatsFolder = $0 }),
-            .toggle(titleKey: "Nagram.ChatListQuickFilters", get: { NagramSettings.shared.chatListQuickFiltersEnabled }, set: { NagramSettings.shared.chatListQuickFiltersEnabled = $0 }),
-            .toggle(titleKey: "Nagram.ChatSearchHideDuplicateRecents", get: { NagramSettings.shared.chatSearchHideRecentListWhenTopPeersVisible }, set: { NagramSettings.shared.chatSearchHideRecentListWhenTopPeersVisible = $0 }),
-            .toggle(titleKey: "Nagram.ChatListUnreadFirst", get: { NagramSettings.shared.chatListUnreadFirst }, set: { value in
-                NagramSettings.shared.chatListUnreadFirst = value
-                if value {
-                    NagramSettings.shared.chatListOldestFirst = false
-                }
-            }),
-            .toggle(titleKey: "Nagram.ChatListOldestFirst", get: { NagramSettings.shared.chatListOldestFirst }, set: { value in
-                NagramSettings.shared.chatListOldestFirst = value
-                if value {
-                    NagramSettings.shared.chatListUnreadFirst = false
-                }
-            }),
-            .toggle(titleKey: "Nagram.MusicPlaylistShowFileSize", get: { NagramSettings.shared.musicPlaylistShowFileSize }, set: { NagramSettings.shared.musicPlaylistShowFileSize = $0 }),
-            .toggle(titleKey: "Nagram.MusicPlaylistShowDownloadStatus", get: { NagramSettings.shared.musicPlaylistShowDownloadStatus }, set: { NagramSettings.shared.musicPlaylistShowDownloadStatus = $0 }),
-            .toggle(titleKey: "Nagram.ChatAutoremoveBadge", get: { NagramSettings.shared.chatAutoremoveBadgeEnabled }, set: { NagramSettings.shared.chatAutoremoveBadgeEnabled = $0 }),
             .toggle(titleKey: "Nagram.ShowFoldersInShareSheet", get: { NagramSettings.shared.showFoldersInShareSheet }, set: { NagramSettings.shared.showFoldersInShareSheet = $0 }),
             .toggle(titleKey: "Nagram.ChooseFolderAfterJoining", get: { NagramSettings.shared.chooseFolderAfterJoining }, set: { NagramSettings.shared.chooseFolderAfterJoining = $0 }),
             .toggle(titleKey: "Nagram.HideSavedAndArchivedMessagesInList", get: { NagramSettings.shared.hideSavedAndArchivedMessagesInList }, set: { NagramSettings.shared.hideSavedAndArchivedMessagesInList = $0 }),
@@ -501,7 +481,6 @@ private func nagramGroups(
             .choice(titleKey: "Nagram.RoundVideoCamera", prefix: "Nagram.RoundVideoCamera", options: ["front", "back"], current: { NagramSettings.shared.roundVideoCameraValue.rawValue }, set: { NagramSettings.shared.roundVideoCamera = $0 }),
         ]),
         NagramGroup(tab: .general, headerKey: "Nagram.Section.Network", footerKey: nil, rows: [
-            .navigation(titleKey: "Nagram.TelegramLatency", action: latencyTestAction),
             .choice(titleKey: "Nagram.DownloadSpeedBoost", prefix: "Nagram.DownloadSpeedBoost", options: ["none", "medium", "maximum"], current: { NagramSettings.shared.downloadSpeedBoost }, set: { NagramSettings.shared.downloadSpeedBoost = $0 }),
             .toggle(titleKey: "Nagram.UploadSpeedBoost", get: { NagramSettings.shared.uploadSpeedBoost }, set: { NagramSettings.shared.uploadSpeedBoost = $0 }),
         ]),
@@ -575,7 +554,6 @@ private func nagramGroups(
             }),
         ]),
         NagramGroup(tab: .chat, headerKey: "Nagram.Section.Sending", footerKey: nil, rows: [
-            .choice(titleKey: "Nagram.DefaultMessageFormat", prefix: "Nagram.DefaultMessageFormat", options: NagramDefaultMessageFormat.allCases.map { $0.rawValue }, current: { NagramSettings.shared.defaultMessageFormatValue.rawValue }, set: { NagramSettings.shared.defaultMessageFormat = $0 }),
             .toggle(titleKey: "Nagram.DisableSendAsButton", get: { NagramSettings.shared.disableSendAsButton }, set: { NagramSettings.shared.disableSendAsButton = $0 }),
             .toggle(titleKey: "Nagram.SendWithReturnKey", get: { NagramSettings.shared.sendWithReturnKey }, set: { NagramSettings.shared.sendWithReturnKey = $0 }),
             .toggle(titleKey: "Nagram.TextStyleToolbar", get: { NagramSettings.shared.showTextStyleToolbar }, set: { NagramSettings.shared.showTextStyleToolbar = $0 }),
@@ -594,10 +572,8 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.VideoPIPSwipeUp", get: { NagramSettings.shared.videoPIPSwipeDirection == "up" }, set: { NagramSettings.shared.videoPIPSwipeDirection = $0 ? "up" : "none" }),
         ]),
         // 其他
-        NagramGroup(tab: .other, headerKey: "Nagram.Tab.Other", footerKey: "Nagram.Other.Footer", rows: [
+        NagramGroup(tab: .other, headerKey: "Nagram.Tab.Other", footerKey: "Nagram.LocalPremium.Footer", rows: [
             .toggle(titleKey: "Nagram.LocalPremium", get: { NagramSettings.shared.localPremiumEnabled }, set: { NagramSettings.shared.localPremiumEnabled = $0 }),
-            .toggle(titleKey: "Nagram.UnlimitedAccounts", get: { NagramSettings.shared.unlimitedAccountsEnabled }, set: { NagramSettings.shared.unlimitedAccountsEnabled = $0 }),
-            .choice(titleKey: "Nagram.LocationIndicator", prefix: "Nagram.LocationIndicator", options: ["always", "all", "home", "chat"], current: { NagramSettings.shared.locationIndicatorModeValue.rawValue }, set: { NagramSettings.shared.locationIndicatorMode = $0 }),
             .navigation(titleKey: "Nagram.About", action: aboutAction),
         ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Experimental", footerKey: "Nagram.MediaMetadata.Footer", rows: [
@@ -619,16 +595,7 @@ private func nagramGroups(
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Sync", footerKey: "Nagram.ICloudSync.Footer", rows: [
             .toggle(titleKey: "Nagram.ICloudSync", get: { NagramSettings.shared.iCloudSyncEnabled }, set: { NagramSettings.shared.iCloudSyncEnabled = $0 }),
         ]),
-        NagramGroup(tab: .other, headerKey: "Nagram.Section.ContactPrivacy", footerKey: "Nagram.ContactDefaults.Footer", rows: [
-            .toggle(titleKey: "Nagram.DisableContactPhoneSharingByDefault", get: { NagramSettings.shared.disableContactPhoneSharingByDefault }, set: { NagramSettings.shared.disableContactPhoneSharingByDefault = $0 }),
-            .toggle(titleKey: "Nagram.DisableContactSyncToPhoneByDefault", get: { NagramSettings.shared.disableContactSyncToPhoneByDefault }, set: { NagramSettings.shared.disableContactSyncToPhoneByDefault = $0 }),
-        ]),
-        NagramGroup(tab: .other, headerKey: "Nagram.Section.Notifications", footerKey: "Nagram.LocalNotificationFallback.Footer", rows: [
-            .toggle(titleKey: "Nagram.LocalNotificationFallback", get: { NagramSettings.shared.localNotificationFallbackEnabled }, set: setLocalNotificationFallbackEnabled),
-            .navigation(titleKey: "Nagram.NotificationDiagnostics", action: notificationDiagnosticsAction),
-        ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Privacy", footerKey: "Nagram.DisableFiltering.Footer", rows: [
-            .toggle(titleKey: "Nagram.IgnoreContentRestrictions", get: { NagramSettings.shared.ignoreContentRestrictions }, set: { NagramSettings.shared.ignoreContentRestrictions = $0 }),
             .toggleWithEnabled(titleKey: "Nagram.DisableFiltering", get: sensitiveContentEnabled, set: setSensitiveContentEnabled, enabled: sensitiveContentCanAdjust, enableInteractiveChanges: false),
             .toggle(titleKey: "Nagram.SkipSensitiveContentWarning", get: { NagramSettings.shared.skipSensitiveContentWarning }, set: { NagramSettings.shared.skipSensitiveContentWarning = $0 }),
         ]),
@@ -736,13 +703,17 @@ public func nagramSettingsSearchEntries(lang: String) -> [NagramSettingsSearchEn
         sensitiveContentConfiguration: { nil },
         setSensitiveContentEnabled: { _ in },
         bottomBarLayoutAction: {},
+        antiRecallRulesAction: {},
+        exportDeletedMessagesAction: {},
+        importDeletedMessagesAction: {},
         messageMenuAction: {},
         regexFiltersAction: {},
         inlineBotRulesAction: {},
         llmTranslationSettingsAction: {},
         sttSettingsAction: {},
         groupProfileSettingsAction: {},
-        sessionBackupAction: {}
+        sessionBackupAction: {},
+        aboutAction: {}
     )
 
     let rootTitle = "t." // MARK: NEXTGRAM — Preserve the downstream name in settings search.
@@ -931,12 +902,9 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
 
     let updateSensitiveContentDisposable = MetaDisposable()
     let deletedMessagesArchiveDisposable = MetaDisposable()
-    // MARK: NEXTGRAM — Measure the active account's actual MTProto round trip.
-    let latencyTestDisposable = MetaDisposable()
     var presentControllerImpl: ((ViewController, ViewControllerPresentationArguments?) -> Void)?
     var presentAgeVerificationImpl: ((@escaping () -> Void) -> Void)?
     var pushControllerImpl: ((ViewController) -> Void)?
-    var notificationSettingsUpdated: (() -> Void)?
     let presentArchiveAlert: (String, String) -> Void = { title, text in
         let presentationData = context.sharedContext.currentPresentationData.with { $0 }
         presentControllerImpl?(textAlertController(context: context, title: title, text: text, actions: [
@@ -1033,44 +1001,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         } else {
             update()
         }
-    }, latencyTestAction: {
-        let presentationData = context.sharedContext.currentPresentationData.with { $0 }
-        let lang = presentationData.strings.baseLanguageCode
-        let startedAt = ProcessInfo.processInfo.systemUptime
-        latencyTestDisposable.set((context.account.network.request(Api.functions.help.test())
-        |> map(Optional.init)
-        |> timeout(10.0, queue: .mainQueue(), alternate: .single(nil))
-        |> deliverOnMainQueue).start(next: { result in
-            switch result {
-            case .some(.boolTrue):
-                let milliseconds = Int((ProcessInfo.processInfo.systemUptime - startedAt) * 1000.0)
-                presentArchiveAlert(ngI18n("Nagram.TelegramLatency", lang), String(format: ngI18n("Nagram.TelegramLatency.Result", lang), milliseconds))
-            case .some(.boolFalse), .none:
-                presentArchiveAlert(ngI18n("Nagram.TelegramLatency", lang), ngI18n("Nagram.TelegramLatency.Failed", lang))
-            }
-        }, error: { _ in
-            presentArchiveAlert(ngI18n("Nagram.TelegramLatency", lang), ngI18n("Nagram.TelegramLatency.Failed", lang))
-        }))
-    }, setLocalNotificationFallbackEnabled: { enabled in
-        guard enabled else {
-            NagramSettings.shared.localNotificationFallbackEnabled = false
-            return
-        }
-        // MARK: NEXTGRAM — Ask for notification permission before starting background location.
-        context.sharedContext.applicationBindings.registerForNotifications { allowed in
-            Queue.mainQueue().async {
-                NagramSettings.shared.localNotificationFallbackEnabled = allowed
-                notificationSettingsUpdated?()
-                if !allowed {
-                    let lang = context.sharedContext.currentPresentationData.with { $0 }.strings.baseLanguageCode
-                    presentArchiveAlert(ngI18n("Nagram.LocalNotificationFallback", lang), ngI18n("Nagram.NotificationDiagnostics.PermissionRequired", lang))
-                }
-            }
-        }
-    }, notificationDiagnosticsAction: {
-        nagramPresentNotificationDiagnostics(context: context, present: { controller in
-            presentControllerImpl?(controller, nil)
-        })
     }, bottomBarLayoutAction: {
         pushControllerImpl?(nagramBottomBarSettingsController(context: context))
     }, antiRecallRulesAction: {
@@ -1119,7 +1049,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         updateValue += 1
         updatePromise.set(updateValue)
     }
-    notificationSettingsUpdated = bump
 
     let arguments = NagramSettingsArguments(toggle: { index, value in
         switch flatRows[index] {
@@ -1356,7 +1285,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
     |> afterDisposed {
         updateSensitiveContentDisposable.dispose()
         deletedMessagesArchiveDisposable.dispose()
-        latencyTestDisposable.dispose()
     }
 
     let controller: ItemListController

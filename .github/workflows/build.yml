@@ -52,6 +52,10 @@ jobs:
           fi
           xcodebuild -version
           xcodebuild -downloadComponent MetalToolchain
+      - name: Require the latest Nagram source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/check-nagram-upstream.py
       - uses: actions/cache/restore@v4
         id: bazel_cache
         with:
@@ -120,8 +124,11 @@ jobs:
           retention-days: 1
       - name: Upload signed IPA to App Store Connect
         if: env.DISTRIBUTION == 'testflight'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          python3 ci/check-nagram-upstream.py
           API_PRIVATE_KEYS_DIR="$(dirname "$ASC_KEY_PATH")" xcrun altool --upload-app --type ios \
             --file build/artifacts/tdot.ipa --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
       - name: Verify processing and enable internal TestFlight

@@ -13,8 +13,6 @@ import TelegramCallsUI
 import TelegramAudio
 import TelegramUIPreferences
 import NagramTelegramSettingsCloudSync
-import NagramSettings // MARK: NEXTGRAM
-import NagramSettingsSignal // MARK: NEXTGRAM
 import TelegramStringFormatting
 import AccountContext
 import DeviceLocationManager
@@ -96,7 +94,6 @@ import WalletContext
 import WalletTransactionScreen
 import WalletCollectibleScreen
 import ContentReportScreen
-
 import AffiliateProgramSetupScreen
 import GalleryUI
 import ShareController
@@ -131,46 +128,6 @@ import TextProcessingScreen
 import CreateBotScreen
 import EmojiStatusSelectionComponent
 import EntityKeyboard
-
-// MARK: NAGRAM — Re-signable builds must register the APNs token for the environment
-// in the installed provisioning profile, not the optimization mode used by Actions.
-private func nagramNotificationSandboxEnvironment() -> Bool {
-    let fallback: Bool
-    #if DEBUG
-    fallback = true
-    #else
-    fallback = false
-    #endif
-
-    guard let profileUrl = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision"),
-          let profileData = try? Data(contentsOf: profileUrl),
-          let profileText = String(data: profileData, encoding: .isoLatin1),
-          let keyRange = profileText.range(of: "<key>aps-environment</key>", options: .caseInsensitive) else {
-        return fallback
-    }
-
-    let valueStart = keyRange.upperBound
-    let valueEnd = profileText.index(valueStart, offsetBy: 256, limitedBy: profileText.endIndex) ?? profileText.endIndex
-    let valueText = profileText[valueStart ..< valueEnd]
-    if valueText.range(of: "<string>development</string>", options: .caseInsensitive) != nil {
-        return true
-    } else if valueText.range(of: "<string>production</string>", options: .caseInsensitive) != nil {
-        return false
-    }
-    return fallback
-}
-
-// MARK: NAGRAM — Without the service extension Telegram must send a visible,
-// unencrypted APNs payload instead of a payload only the extension can decrypt.
-private func nagramHasNotificationServiceExtension() -> Bool {
-    guard let pluginsUrl = Bundle.main.builtInPlugInsURL,
-          let pluginUrls = try? FileManager.default.contentsOfDirectory(at: pluginsUrl, includingPropertiesForKeys: nil) else {
-        return false
-    }
-    return pluginUrls.contains(where: { url in
-        return Bundle(url: url)?.bundleIdentifier?.hasSuffix(".NotificationService") == true
-    })
-}
 
 private final class AccountUserInterfaceInUseContext {
     let subscribers = Bag<(Bool) -> Void>()
@@ -250,10 +207,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     private let registeredNotificationTokensDisposable = MetaDisposable()
-    // MARK: NEXTGRAM — Keeps the MTProto connection eligible for background execution without APNs.
-    private let nagramLocalNotificationFallbackSettingsDisposable = MetaDisposable()
-    private let nagramLocalNotificationFallbackLocationDisposable = MetaDisposable()
-    private let nagramLocalNotificationMessagesDisposable = MetaDisposable() // MARK: NEXTGRAM
     
     public let mediaManager: MediaManager
     public let contactDataManager: DeviceContactDataManager?
@@ -397,7 +350,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             guard let data else {
                 return nil
             }
-            let sandbox = nagramNotificationSandboxEnvironment()
+            let sandbox: Bool
+            #if DEBUG
+            sandbox = true
+            #else
+            sandbox = false
+            #endif
             return AuthorizationCodePushNotificationConfiguration(
                 token: hexString(data),
                 isSandbox: sandbox
@@ -414,7 +372,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             self.locationManager = nil
             self.contactDataManager = nil
         }
-
+        
         self._currentPresentationData = Atomic(value: initialPresentationDataAndSettings.presentationData)
         self.currentAutomaticMediaDownloadSettings = initialPresentationDataAndSettings.automaticMediaDownloadSettings
         self.currentAutodownloadSettings = Atomic(value: initialPresentationDataAndSettings.autodownloadSettings)
@@ -445,22 +403,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         ))
         
         self.mediaManager = MediaManagerImpl(accountManager: accountManager, inForeground: applicationBindings.applicationInForeground, presentationData: presentationData)
-
-        // MARK: NEXTGRAM — Background location is an explicit, opt-in fallback for re-signed builds.
-        if applicationBindings.isMainApp, let locationManager = self.locationManager {
-            self.nagramLocalNotificationFallbackSettingsDisposable.set((nagramBoolSignal("nagram.localNotificationFallbackEnabled", defaultValue: false)
-            |> deliverOnMainQueue).startStrict(next: { [weak self, weak locationManager] enabled in
-                guard let self, let locationManager else {
-                    return
-                }
-                if enabled {
-                    self.nagramLocalNotificationFallbackLocationDisposable.set(locationManager.push(mode: .preciseAlways, updated: { _, _ in
-                    }))
-                } else {
-                    self.nagramLocalNotificationFallbackLocationDisposable.set(nil)
-                }
-            }))
-        }
         
         self.mediaManager.overlayMediaManager.updatePossibleEmbeddingItem = { [weak self] item in
             guard let strongSelf = self else {
@@ -910,32 +852,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
             }
         })
         
-        // MARK: NEXTGRAM — Listen to every signed-in account, independently of the currently displayed account.
-        if applicationBindings.isMainApp {
-            self.nagramLocalNotificationMessagesDisposable.set((combineLatest(self.activeAccountContexts, nagramBoolSignal("nagram.localNotificationFallbackEnabled", defaultValue: false))
-            |> mapToSignal { activeAccounts, enabled -> Signal<Never, NoError> in
-                guard enabled else {
-                    return .complete()
-                }
-                return Signal { _ in
-                    let disposables = DisposableSet()
-                    for (_, context, _) in activeAccounts.accounts {
-                        disposables.add((context.account.stateManager.notificationMessages
-                        |> deliverOnMainQueue).start(next: { messageList in
-                            // MARK: NEXTGRAM — In the foreground, other accounts still need a system banner.
-                            guard UIApplication.shared.applicationState != .active || context.account.id != activeAccounts.primary?.account.id else {
-                                return
-                            }
-                            for (messages, _, notify, _) in messageList {
-                                nagramScheduleLocalMessageNotification(context: context, messages: messages, notify: notify)
-                            }
-                        }))
-                    }
-                    return disposables
-                }
-            }).start())
-        }
-
         if let mainWindow = mainWindow, applicationBindings.isMainApp {
             let webProxyCarrierHost = WebProxyCarrierWindowHost(containerView: mainWindow.hostView.containerView)
             self.webProxyCarrierHost = webProxyCarrierHost
@@ -1213,9 +1129,6 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     deinit {
         assertionFailure("SharedAccountContextImpl is not supposed to be deallocated")
         self.registeredNotificationTokensDisposable.dispose()
-        self.nagramLocalNotificationFallbackSettingsDisposable.dispose()
-        self.nagramLocalNotificationFallbackLocationDisposable.dispose()
-        self.nagramLocalNotificationMessagesDisposable.dispose() // MARK: NEXTGRAM
         self.presentationDataDisposable.dispose()
         self.automaticMediaDownloadSettingsDisposable.dispose()
         self.currentAutodownloadSettingsDisposable.dispose()
@@ -1737,8 +1650,12 @@ public final class SharedAccountContextImpl: SharedAccountContext {
     }
     
     public func updateNotificationTokensRegistration() {
-        let sandbox = nagramNotificationSandboxEnvironment()
-        let encryptApsPayload = nagramHasNotificationServiceExtension()
+        let sandbox: Bool
+        #if DEBUG
+        sandbox = true
+        #else
+        sandbox = false
+        #endif
         
         let settings = self.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.inAppNotificationSettings])
         |> map { sharedData -> (allAccounts: Bool, includeMuted: Bool) in
@@ -1811,7 +1728,7 @@ public final class SharedAccountContextImpl: SharedAccountContext {
                     }
                 } else {
                     if let apsNotificationToken {
-                        appliedAps = account.engine.accountData.registerNotificationToken(token: apsNotificationToken, type: .aps(encrypt: encryptApsPayload), sandbox: sandbox, otherAccountUserIds: (account.account.testingEnvironment ? activeTestingUserIds : activeProductionUserIds).filter({ $0 != account.account.peerId.id }), excludeMutedChats: !settings.includeMuted)
+                        appliedAps = account.engine.accountData.registerNotificationToken(token: apsNotificationToken, type: .aps(encrypt: true), sandbox: sandbox, otherAccountUserIds: (account.account.testingEnvironment ? activeTestingUserIds : activeProductionUserIds).filter({ $0 != account.account.peerId.id }), excludeMutedChats: !settings.includeMuted)
                     } else {
                         appliedAps = .single(true)
                     }

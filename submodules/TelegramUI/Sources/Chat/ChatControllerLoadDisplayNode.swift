@@ -81,7 +81,7 @@ import TextNodeWithEntities
 // MARK: NAGRAM
 import NagramSettings
 import NagramSettingsSignal
-import NagramStrings // MARK: NEXTGRAM — Nagram unpin confirmation text.
+import NagramStrings
 import EntityKeyboard
 import ChatTitleView
 import EmojiStatusComponent
@@ -3212,22 +3212,7 @@ extension ChatControllerImpl {
                 
                 if canSetupAutoremoveTimeout {
                     strongSelf.presentAutoremoveSetup()
-                } else if let currentAutoremoveTimeout = currentAutoremoveTimeout {
-                    // MARK: NAGRAM
-                    // MARK: NEXTGRAM — Anchor the no-permission explanation to the avatar badge when that UI is enabled.
-                    let tooltipSource: (ASDisplayNode, CGRect)?
-                    if NagramSettings.shared.chatAutoremoveBadgeEnabled,
-                       let avatarNode = strongSelf.avatarNode,
-                       let rect = avatarNode.autoremoveBadgeRect {
-                        tooltipSource = (avatarNode, rect)
-                    } else if let rect = strongSelf.chatDisplayNode.frameForInputPanelAccessoryButton(.messageAutoremoveTimeout(currentAutoremoveTimeout)) {
-                        tooltipSource = (strongSelf.chatDisplayNode, rect)
-                    } else {
-                        tooltipSource = nil
-                    }
-                    guard let tooltipSource else {
-                        return
-                    }
+                } else if let currentAutoremoveTimeout = currentAutoremoveTimeout, let rect = strongSelf.chatDisplayNode.frameForInputPanelAccessoryButton(.messageAutoremoveTimeout(currentAutoremoveTimeout)) {
                     
                     let intervalText = timeIntervalString(strings: strongSelf.presentationData.strings, value: currentAutoremoveTimeout)
                     let text: String = strongSelf.presentationData.strings.Conversation_AutoremoveTimerSetToastText(intervalText).string
@@ -3245,7 +3230,10 @@ extension ChatControllerImpl {
                             }
                         }
                         strongSelf.present(tooltipController, in: .window(.root), with: TooltipControllerPresentationArguments(sourceNodeAndRect: {
-                            return tooltipSource
+                            if let strongSelf = self {
+                                return (strongSelf.chatDisplayNode, rect)
+                            }
+                            return nil
                         }))
                     }
                 }
@@ -3525,7 +3513,7 @@ extension ChatControllerImpl {
                             }
                         }
                     }
-                    // MARK: NEXTGRAM - optionally confirm the message menu's Unpin too (askForConfirmation == false).
+                    // MARK: NAGRAM - optionally confirm the message menu's Unpin too (askForConfirmation == false).
                     if askForConfirmation || NagramSettings.shared.confirmUnpin {
                         strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: strongSelf.presentationData.strings.Conversation_UnpinMessageAlert, actions: [TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Conversation_Unpin, action: {
                             action()
@@ -3606,7 +3594,7 @@ extension ChatControllerImpl {
                 if strongSelf.canManagePin() {
                     let count = strongSelf.presentationInterfaceState.pinnedMessage?.totalCount ?? 1
                     
-                    // MARK: NEXTGRAM - optionally confirm before unpinning all messages.
+                    // MARK: NAGRAM - optionally confirm before unpinning all messages.
                     if NagramSettings.shared.confirmUnpin {
                         strongSelf.present(textAlertController(context: strongSelf.context, updatedPresentationData: strongSelf.updatedPresentationData, title: nil, text: ngI18n("Nagram.UnpinAllMessagesAlert", strongSelf.presentationData.strings.baseLanguageCode), actions: [TextAlertAction(type: .genericAction, title: strongSelf.presentationData.strings.Chat_PanelUnpinAllMessages, action: {
                             guard let strongSelf = self else {

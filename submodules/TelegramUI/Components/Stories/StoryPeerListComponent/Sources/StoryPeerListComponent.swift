@@ -61,8 +61,6 @@ public final class StoryPeerListComponent: Component {
     public let openStatusSetup: (UIView) -> Void
     public let lockAction: () -> Void
     public let composeAction: (CGFloat) -> Void
-    // MARK: NEXTGRAM — Optional title action that does not require showing the passcode lock.
-    public let titlePressed: (() -> Void)?
     
     public init(
         externalState: ExternalState,
@@ -86,8 +84,7 @@ public final class StoryPeerListComponent: Component {
         contextPeerAction: @escaping (ContextExtractedContentContainingNode, ContextGesture, EnginePeer) -> Void,
         openStatusSetup: @escaping (UIView) -> Void,
         lockAction: @escaping () -> Void,
-        composeAction: @escaping (CGFloat) -> Void,
-        titlePressed: (() -> Void)? = nil
+        composeAction: @escaping (CGFloat) -> Void
     ) {
         self.externalState = externalState
         self.context = context
@@ -111,7 +108,6 @@ public final class StoryPeerListComponent: Component {
         self.openStatusSetup = openStatusSetup
         self.lockAction = lockAction
         self.composeAction = composeAction
-        self.titlePressed = titlePressed
     }
     
     public static func ==(lhs: StoryPeerListComponent, rhs: StoryPeerListComponent) -> Bool {
@@ -134,9 +130,6 @@ public final class StoryPeerListComponent: Component {
             return false
         }
         if lhs.titleHasLock != rhs.titleHasLock {
-            return false
-        }
-        if (lhs.titlePressed == nil) != (rhs.titlePressed == nil) {
             return false
         }
         if lhs.titleHasActivity != rhs.titleHasActivity {
@@ -451,9 +444,7 @@ public final class StoryPeerListComponent: Component {
             guard let component = self.component else {
                 return
             }
-            if let titlePressed = component.titlePressed {
-                titlePressed()
-            } else if component.titleHasLock {
+            if component.titleHasLock {
                 component.lockAction()
             }
         }
@@ -1467,27 +1458,20 @@ public final class StoryPeerListComponent: Component {
                 self.titleView.layer.transform = CATransform3DMakeScale(titleScale, titleScale, 1.0)
             }
             
-            if component.titleHasLock || component.titlePressed != nil {
-                var buttonMinX = titleFrame.minX - 4.0
-                if component.titleHasLock {
-                    let titleLockView: ChatListTitleLockView
-                    if let current = self.titleLockView {
-                        titleLockView = current
-                    } else {
-                        titleLockView = ChatListTitleLockView(frame: CGRect(origin: CGPoint(), size: CGSize(width: 2.0, height: 2.0)))
-                        self.titleLockView = titleLockView
-                        self.addSubview(titleLockView)
-                    }
-                    titleLockView.updateTheme(component.theme)
-
-                    let lockFrame = CGRect(x: titleFrame.minX - 6.0 - 12.0, y: titleFrame.minY + 3.0, width: 2.0, height: 2.0)
-                    titleLockView.frame = lockFrame
-                    buttonMinX = lockFrame.minX - 4.0
-                } else if let titleLockView = self.titleLockView {
-                    self.titleLockView = nil
-                    titleLockView.removeFromSuperview()
+            if component.titleHasLock {
+                let titleLockView: ChatListTitleLockView
+                if let current = self.titleLockView {
+                    titleLockView = current
+                } else {
+                    titleLockView = ChatListTitleLockView(frame: CGRect(origin: CGPoint(), size: CGSize(width: 2.0, height: 2.0)))
+                    self.titleLockView = titleLockView
+                    self.addSubview(titleLockView)
                 }
-
+                titleLockView.updateTheme(component.theme)
+                
+                let lockFrame = CGRect(x: titleFrame.minX - 6.0 - 12.0, y: titleFrame.minY + 3.0, width: 2.0, height: 2.0)
+                titleLockView.frame = lockFrame
+                
                 let titleLockButton: HighlightTrackingButton
                 if let current = self.titleLockButton {
                     titleLockButton = current
@@ -1497,16 +1481,13 @@ public final class StoryPeerListComponent: Component {
                     self.addSubview(titleLockButton)
                     titleLockButton.addTarget(self, action: #selector(self.titleLockButtonPressed), for: .touchUpInside)
                 }
-                titleLockButton.frame = CGRect(origin: CGPoint(x: buttonMinX, y: titleFrame.minY - 4.0), size: CGSize(width: titleFrame.maxX - buttonMinX + 4.0, height: titleFrame.height + 8.0))
-            } else {
-                if let titleLockView = self.titleLockView {
-                    self.titleLockView = nil
-                    titleLockView.removeFromSuperview()
-                }
-                if let titleLockButton = self.titleLockButton {
-                    self.titleLockButton = nil
-                    titleLockButton.removeFromSuperview()
-                }
+                titleLockButton.frame = CGRect(origin: CGPoint(x: lockFrame.minX - 4.0, y: titleFrame.minY - 4.0), size: CGSize(width: titleFrame.maxX - lockFrame.minX + 4.0, height: titleFrame.height + 8.0))
+            } else if let titleLockView = self.titleLockView {
+                self.titleLockView = nil
+                titleLockView.removeFromSuperview()
+                
+                self.titleLockButton?.removeFromSuperview()
+                self.titleLockButton = nil
             }
             
             for disappearingTitleView in self.disappearingTitleViews {

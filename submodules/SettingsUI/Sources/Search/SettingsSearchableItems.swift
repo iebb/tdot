@@ -30,7 +30,7 @@ import QuickReactionSetupController
 import AvatarEditorScreen
 import PeerSelectionScreen
 import DeviceModel
-// MARK: NEXTGRAM — Nagram 设置项加入设置搜索
+// MARK: NAGRAM — Nagram 设置项加入设置搜索
 import NagramSettingsUI
 
 enum SettingsSearchableItemIcon {
@@ -60,7 +60,7 @@ enum SettingsSearchableItemIcon {
     case myProfile
     case gift
     case powerSaving
-    // MARK: NEXTGRAM
+    // MARK: NAGRAM
     case nagram
 }
 
@@ -3845,7 +3845,7 @@ private func energySavingSearchableItems(context: AccountContext) -> [SettingsSe
     ]
 }
 
-// MARK: NEXTGRAM — Nagram 设置项（含子页面内的行）：条目表来自 NagramSettingsUI，打开即跳到对应行并高亮。
+// MARK: NAGRAM — Nagram 设置项（含子页面内的行）：条目表来自 NagramSettingsUI，打开即跳到对应行并高亮。
 private func nagramSearchableItems(context: AccountContext) -> [SettingsSearchableItem] {
     let strings = context.sharedContext.currentPresentationData.with { $0 }.strings
     
@@ -4289,7 +4289,7 @@ func settingsSearchableItems(
     let canAddAccount = activeAccountsAndPeers(context: context)
     |> take(1)
     |> map { accountsAndPeers -> Bool in
-        return accountsAndPeers.1.count + 1 < nextgramMaximumNumberOfAccounts // MARK: NEXTGRAM
+        return accountsAndPeers.1.count + 1 < maximumNumberOfAccounts
     }
     
     let notificationSettings = context.engine.data.subscribe(TelegramEngine.EngineData.Item.Configuration.ApplicationSpecificPreference(key: PreferencesKeys.globalNotifications))
@@ -4444,7 +4444,7 @@ func settingsSearchableItems(
         let powerSavingItems = energySavingSearchableItems(context: context)
         allItems.append(contentsOf: powerSavingItems)
         
-        // MARK: NEXTGRAM
+        // MARK: NAGRAM
         let nagramItems = nagramSearchableItems(context: context)
         allItems.append(contentsOf: nagramItems)
         
@@ -4567,7 +4567,7 @@ func searchSettingsItems(items: [SettingsSearchableItem], query: String) -> [Set
                 }
             }
         }
-        // MARK: NEXTGRAM — 子串匹配只看标题和别名，不含面包屑。
+        // MARK: NAGRAM — 子串匹配只看标题和别名，不含面包屑。
         let nagramSubstringText = string
         if item.breadcrumbs.count > 1 {
             string += " \(item.breadcrumbs.suffix(from: 1).joined(separator: " "))"
@@ -4575,7 +4575,7 @@ func searchSettingsItems(items: [SettingsSearchableItem], query: String) -> [Set
         
         let tokens = stringTokens(string)
         var matches = showAll || matchStringTokens(tokens, with: queryTokens)
-        // MARK: NEXTGRAM — 上游按系统分词做词前缀匹配，中文从词中间搜不到；Nagram 条目对 CJK 查询词补子串匹配。
+        // MARK: NAGRAM — 上游按系统分词做词前缀匹配，中文从词中间搜不到；Nagram 条目对 CJK 查询词补子串匹配。
         if !matches, case .nagram = item.icon {
             matches = nagramSettingsSearchMatchesSubstring(query: query, text: nagramSubstringText, matchesWord: { word in
                 return matchStringTokens(tokens, with: stringTokens(word))

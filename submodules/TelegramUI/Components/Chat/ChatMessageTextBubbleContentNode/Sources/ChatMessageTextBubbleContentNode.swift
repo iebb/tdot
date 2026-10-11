@@ -553,9 +553,7 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                 } else {
                     entities = messageEntities
                     
-                    // MARK: NEXTGRAM — Seed local URL detection when the server omitted entities.
-                    let containsWebUrl = rawText.range(of: "https://", options: .caseInsensitive) != nil || rawText.range(of: "http://", options: .caseInsensitive) != nil
-                    if entities == nil && (mediaDuration != nil || isSeekableWebMedia || rawText.range(of: "t.me", options: .caseInsensitive) != nil || containsWebUrl) {
+                    if entities == nil && (mediaDuration != nil || isSeekableWebMedia) {
                         entities = []
                     }
                     
@@ -567,14 +565,9 @@ public class ChatMessageTextBubbleContentNode: ChatMessageBubbleContentNode {
                                 mediaDuration = 60.0 * 60.0 * 24.0
                             }
                         }
-                        var locallyCompletedEntities = entitiesValue
-                        if containsWebUrl {
-                            locallyCompletedEntities = generateTextEntities(rawText, enabledTypes: enabledTypes, currentEntities: locallyCompletedEntities)
+                        if let result = addLocallyGeneratedEntities(rawText, enabledTypes: enabledTypes, entities: entitiesValue, mediaDuration: mediaDuration) {
+                            entities = result
                         }
-                        if let result = addLocallyGeneratedEntities(rawText, enabledTypes: enabledTypes, entities: locallyCompletedEntities, mediaDuration: mediaDuration) {
-                            locallyCompletedEntities = result
-                        }
-                        entities = locallyCompletedEntities
                     } else {
                         var generateEntities = false
                         for media in message.media {

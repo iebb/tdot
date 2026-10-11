@@ -161,7 +161,7 @@ private final class WebBrowserItemNode: ListViewItemNode {
                         let icons = item.context.sharedContext.applicationBindings.getAvailableAlternateIcons()
                         let current = item.context.sharedContext.applicationBindings.getAlternateIconName()
                         // MARK: NAGRAM — nil means the branded primary icon is active.
-                        let currentIcon = icons.first(where: { $0.name == current })?.imageName ?? icons.first(where: { $0.isDefault })?.imageName ?? "NextgramPreview"
+                        let currentIcon = icons.first(where: { $0.name == current })?.imageName ?? icons.first(where: { $0.isDefault })?.imageName ?? "TDotPreview" // MARK: NEXTGRAM
                         if let image = loadWebBrowserAppIconImage(currentIcon) {
                             updatedIconSignal = openInAppIcon(engine: item.context.engine, appIcon: .image(image: image))
                         }

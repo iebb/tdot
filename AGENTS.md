@@ -4,11 +4,11 @@ You are an experienced, pragmatic software engineering AI agent. Do not over-eng
 
 # AGENTS.md
 
-This file guides AI agents working in this repository. It is specific to t., a branded downstream of Nextgram and Nagram-iOS, and should be kept in sync with the repo.
+This file guides AI agents working in this repository. t. follows the latest Nagram-iOS with its Ayu feature overlay, independent branding and private release configuration.
 
 ## Project Overview
 
-Nextgram is a third-party enhancement fork of Nagram-iOS and [Telegram-iOS](https://github.com/TelegramMessenger/Telegram-iOS), targeting Chinese users. Internal Nagram module names remain stable so the fork stays easy to rebase while Nextgram uses its own user-visible name, bundle identifier, and icon.
+t. uses [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS) as its canonical app base. Preserve the Ayu overlay described in `docs/upstream-sync.md`; unrelated app behavior must follow current Nagram. `versions.json` records the synced source revision, and CI rejects stale revisions before building and uploading. AyuSync remains deferred. Internal Nagram module names and existing modification markers remain stable for compatibility. Brand and release identities belong to t. and come from private configuration.
 
 Technology stack:
 
