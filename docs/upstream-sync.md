@@ -1,6 +1,6 @@
 # Nagram upstream and the t. overlay
 
-The canonical app base is [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS), currently `96ae08ca80ffe9ddc9906de69bdd3b257814b381`. `versions.json` records the revision. The initial imported snapshot was `db0722d6`.
+The canonical app base is [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS), currently `6d612fc133db334a17616834d391a9c87060e762`. `versions.json` records the revision. The initial imported snapshot was `db0722d6`.
 
 t. keeps its independent branding, private API and signing configuration, App Store metadata, CI, and these Ayu features on top:
 

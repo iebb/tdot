@@ -452,6 +452,9 @@ public final class NagramSettings {
     /// 在列表中隐藏收藏夹和归档会话的具体预览（默认关 = 保持 Telegram 原生行为）
     @NagramDefault("nagram.hideSavedAndArchivedMessagesInList", false)
     public var hideSavedAndArchivedMessagesInList: Bool
+    /// 列表停在顶部时，新消息会话保持在可见顶部（默认关 = 保持 Telegram 原生行为）
+    @NagramDefault("nagram.keepNewChatsVisibleAtTop", false)
+    public var keepNewChatsVisibleAtTop: Bool
     /// 禁用 Community 将多个聊天合并为一个列表项（默认关 = 保持 Telegram 原生行为）
     @NagramDefault("nagram.disableCommunityChatGrouping", false)
     public var disableCommunityChatGrouping: Bool
@@ -690,8 +693,14 @@ private func nagramTranslationLLMURL(baseURLString: String, endpoint: String, de
         endpointPath = String(endpointPath.dropFirst(3))
     }
 
-    components.percentEncodedPath = basePath + endpointPath
-    components.percentEncodedQuery = nil
+    // The endpoint is typed by the user, and the percentEncodedPath setter traps on anything that
+    // is not a valid encoded path (a space, a "?query", non-ASCII). Take the path from a parse
+    // instead: its getter only ever returns a valid one.
+    guard let endpointComponents = URLComponents(string: endpointPath), endpointComponents.host == nil else {
+        return nil
+    }
+    components.percentEncodedPath = basePath + endpointComponents.percentEncodedPath
+    components.percentEncodedQuery = endpointComponents.percentEncodedQuery
     components.fragment = nil
     return components.url
 }

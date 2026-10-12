@@ -53,6 +53,7 @@ enum NagramSettingsSyncKeys {
         "nagram.openArchiveOnPull",
         "nagram.showArchiveInFolders",
         "nagram.hideSavedAndArchivedMessagesInList",
+        "nagram.keepNewChatsVisibleAtTop",
         "nagram.disableCommunityChatGrouping",
         "nagram.communityAvatarTapAction",
         "nagram.chatListStartupFolderMode",
