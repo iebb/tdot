@@ -44,8 +44,6 @@ import MediaEditor
 import TelegramUIDeclareEncodables
 import ContextMenuScreen
 import MetalEngine
-import NagramSettings // MARK: NEXTGRAM
-import NagramStrings // MARK: NEXTGRAM
 import RecaptchaEnterprise
 import NavigationBarImpl
 import ContextUI
@@ -283,11 +281,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
     private var authContextValue: UnauthorizedApplicationContext?
     private let authContext = Promise<UnauthorizedApplicationContext?>()
     private let authContextDisposable = MetaDisposable()
-
-    // MARK: NEXTGRAM — Show the current usage agreement once on both authorized and authorization roots.
-    private let nextgramUsageAgreementVersion: Int32 = 1
-    private var canPresentNextgramUsageAgreement = false
-    private var isPresentingNextgramUsageAgreement = false
     
     private let logoutDisposable = MetaDisposable()
     
@@ -740,10 +733,8 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         if let maybeAppGroupUrl {
             appGroupUrl = maybeAppGroupUrl
         } else {
-            // MARK: NAGRAM
-            // MARK: NEXTGRAM
-            // Self-signed builds may not have the App Groups entitlement. Keep the
-            // main app usable by storing its data in the regular application sandbox.
+            // MARK: NEXTGRAM — Simulator build configuration has no signed App Group.
+            #if targetEnvironment(simulator)
             let fallbackAppGroupUrl = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
                 .appendingPathComponent("t.", isDirectory: true)
             do {
@@ -753,6 +744,10 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Unable to initialize the application data directory.", preferredStyle: .alert))
                 return true
             }
+            #else
+            self.mainWindow?.presentNative(UIAlertController(title: nil, message: "Error 2", preferredStyle: .alert))
+            return true
+            #endif
         }
         
         var isDebugConfiguration = false
@@ -1522,10 +1517,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                     self.registerForNotifications(context: context.context, authorize: authorizeNotifications)
                     
                     self.resetIntentsIfNeeded(context: context.context)
-
-                    // MARK: NEXTGRAM
-                    self.canPresentNextgramUsageAgreement = true
-                    self.presentNextgramUsageAgreementIfNeeded(sharedContext: context.sharedApplicationContext.sharedContext)
                 }))
             } else {
                 self.mainWindow.viewController = nil
@@ -1594,9 +1585,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                 |> deliverOnMainQueue).start(next: { _ in
                     progressDisposable.dispose()
                     self.mainWindow.present(context.rootController, on: .root)
-                    // MARK: NEXTGRAM
-                    self.canPresentNextgramUsageAgreement = true
-                    self.presentNextgramUsageAgreementIfNeeded(sharedContext: context.sharedContext)
                 }))
             } else {
                 authContextReadyDisposable.set(nil)
@@ -2191,49 +2179,23 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         })
     }
 
-    // MARK: NEXTGRAM — The acknowledgement is local and versioned so a materially revised agreement can be shown again.
-    private func presentNextgramUsageAgreementIfNeeded(sharedContext: SharedAccountContextImpl) {
-        guard self.canPresentNextgramUsageAgreement,
-              !self.isPresentingNextgramUsageAgreement,
-              NagramSettings.shared.usageAgreementAcceptedVersion < self.nextgramUsageAgreementVersion else {
-            return
-        }
-        self.isPresentingNextgramUsageAgreement = true
-
-        Queue.mainQueue().after(0.35, { [weak self] in
-            guard let self else {
-                return
-            }
-            guard NagramSettings.shared.usageAgreementAcceptedVersion < self.nextgramUsageAgreementVersion else {
-                self.isPresentingNextgramUsageAgreement = false
-                return
-            }
-            let presentationData = sharedContext.currentPresentationData.with { $0 }
-            let lang = presentationData.strings.baseLanguageCode
-            let alertController = textAlertController(
-                sharedContext: sharedContext,
-                title: ngI18n("Nagram.UsageAgreement.AlertTitle", lang),
-                text: ngI18n("Nagram.UsageAgreement.AlertText", lang),
-                actions: [
-                    TextAlertAction(type: .genericAction, title: ngI18n("Nagram.UsageAgreement.Read", lang), action: { [weak self] in
-                        self?.isPresentingNextgramUsageAgreement = false
-                        if let url = URL(string: "https://github.com/iebb/tdot/blob/master/USAGE_AGREEMENT.md") {
-                            UIApplication.shared.open(url, options: [:], completionHandler: nil)
-                        }
-                    }),
-                    TextAlertAction(type: .defaultAction, title: ngI18n("Nagram.UsageAgreement.Accepted", lang), action: { [weak self] in
-                        NagramSettings.shared.usageAgreementAcceptedVersion = self?.nextgramUsageAgreementVersion ?? 1
-                        self?.isPresentingNextgramUsageAgreement = false
-                    })
-                ],
-                dismissOnOutsideTap: false
-            )
-            self.mainWindow.present(alertController, on: .root, blockInteraction: false, completion: {})
-        })
-    }
-
-    // MARK: NEXTGRAM — Preserve agreement presentation under the upstream scene lifecycle.
+    // MARK: NAGRAM — driven by the single application scene.
     func handleDidBecomeActive() {
+        let application = UIApplication.shared
+        // MARK: NAGRAM — migrate removed Telegram icons after an app update.
+        // UIKit owns the selection; nil restores the primary Nagram icon.
+        if let iconName = application.alternateIconName, [
+            "BlackIcon", "BlackClassicIcon", "BlackFilledIcon", "BlueIcon",
+            "BlueClassicIcon", "BlueFilledIcon", "WhiteFilledIcon", "New1", "New2",
+            "Premium", "PremiumBlack", "PremiumTurbo"
+        ].contains(iconName) {
+            application.setAlternateIconName(nil, completionHandler: { error in
+                if let error = error {
+                    Logger.shared.log("App \(self.episodeId)", "failed to reset removed app icon \(iconName): \(error.localizedDescription)")
+                }
+            })
+        }
+
         self.isInForegroundValue = true
         self.isInForegroundPromise.set(true)
         self.isActiveValue = true
@@ -2242,13 +2204,6 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
         self.resetBadge()
         
         self.maybeCheckForUpdates()
-
-        // MARK: NEXTGRAM — Returning from the agreement page shows the prompt again until the user acknowledges it.
-        let _ = (self.sharedContextPromise.get()
-        |> take(1)
-        |> deliverOnMainQueue).start(next: { [weak self] sharedApplicationContext in
-            self?.presentNextgramUsageAgreementIfNeeded(sharedContext: sharedApplicationContext.sharedContext)
-        })
         
         SharedDisplayLinkDriver.shared.updateForegroundState(self.isActiveValue)
         
@@ -3314,8 +3269,7 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
             Logger.shared.log("App \(self.episodeId)", "register for notifications: received settings: \(settings.authorizationStatus)")
             
             switch (settings.authorizationStatus, authorize) {
-                // MARK: NEXTGRAM — Provisional permission also supports notification delivery.
-                case (.authorized, _), (.provisional, _), (.notDetermined, true):
+                case (.authorized, _), (.notDetermined, true):
                     var authorizationOptions: UNAuthorizationOptions = [.badge, .sound, .alert, .carPlay]
                     if #available(iOS 12.0, *) {
                         authorizationOptions.insert(.providesAppNotificationSettings)
@@ -3374,28 +3328,20 @@ private func extractAccountManagerState(records: AccountRecordsView<TelegramAcco
                         }
                     })
                 default:
-                    completion(false) // MARK: NEXTGRAM — Always finish permission requests, including denied access.
+                    break
             }
         })
     }
     
     @available(iOS 10.0, *)
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        // MARK: NEXTGRAM — Test alerts must be visible even while the current account is open.
-        if notification.request.identifier.hasPrefix("nextgram-test-") {
-            completionHandler([.banner, .list, .sound])
-            return
-        }
         let _ = (accountIdFromNotification(notification, sharedContext: self.sharedContextPromise.get())
-        |> take(1) // MARK: NEXTGRAM — Complete foreground presentation exactly once.
         |> deliverOnMainQueue).start(next: { accountId in
             if let context = self.contextValue {
                 if let accountId = accountId, context.context.account.id != accountId || notification.request.content.userInfo["url"] != nil {
-                    completionHandler([.banner, .list, .sound]) // MARK: NEXTGRAM
-                    return
+                    completionHandler([.banner, .list])
                 }
             }
-            completionHandler([]) // MARK: NEXTGRAM — The system completion must also run when using the in-app banner.
         })
     }
     

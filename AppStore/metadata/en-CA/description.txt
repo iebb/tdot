@@ -1,4 +1,4 @@
-t. is an unofficial Telegram client for iPhone and iPad, based on the open-source Telegram, Nagram and Nextgram projects.
+t. is an unofficial Telegram client for iPhone and iPad, based on the open-source Telegram and Nagram projects.
 
 Keep your Telegram conversations together while making the interface work the way you prefer.
 
@@ -10,4 +10,4 @@ Keep your Telegram conversations together while making the interface work the wa
 
 A Telegram account is required. Optional translation and transcription services may require separate provider credentials. Feature availability depends on Telegram and your configured providers.
 
-t. is independent of Telegram Messenger Inc., Nagram and Nextgram, and is not affiliated with or endorsed by their developers. Telegram is a trademark of Telegram Messenger Inc.
+t. is independent of Telegram Messenger Inc. and Nagram, and is not affiliated with or endorsed by their developers. Telegram is a trademark of Telegram Messenger Inc.

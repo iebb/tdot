@@ -17,9 +17,9 @@ import TelegramUIPreferences
 import UIKit
 import UndoUI
 
-// MARK: NEXTGRAM — 增强设置页 UI。
-// 首页提供全局搜索和板块入口；进入板块后再按 section header 分层，避免顶部导航随功能增长而拥挤。
-// 数据驱动:nagramGroups() 描述「板块 → 分组(header/footer/行)」,加开关只改这张表。
+// MARK: NAGRAM — 增强设置页 UI。
+// 顶部 3 段(通用/消息/其他)用 ItemListControllerTitle.sectionControl;段内用 section header 分层。
+// 数据驱动:nagramGroups() 描述「tab → 段内分组(header/footer/行)」,加开关只改这张表。
 // 行类型 NagramRow:toggle(开关)/ choice(disclosure + ActionSheet 弹选,下载加速)/ slider(行内百分比滑杆,贴纸尺寸)。
 // 刷新机制:本地 updatePromise + bump()。toggle/choice 改值后调 bump() 触发列表重建(在 setter 返回之后,
 // 不在 UserDefaults.didChange 同步回调内,故无 Swift 独占访问重入崩溃);slider 拖动时本节点自显示,不 bump。
@@ -58,33 +58,6 @@ private final class NagramSettingsRowTag: ItemListItemTag {
             return self.index == other.index
         }
         return false
-    }
-}
-
-// MARK: NEXTGRAM — Hide the parent Settings title while keeping the back arrow.
-private final class NagramSettingsItemListController: ItemListController {
-    private weak var backButtonSourceItem: UINavigationItem?
-    private var previousBackBarButtonItem: UIBarButtonItem?
-
-    deinit {
-        if let backButtonSourceItem = self.backButtonSourceItem {
-            backButtonSourceItem.backBarButtonItem = self.previousBackBarButtonItem
-        }
-    }
-
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-
-        guard self.backButtonSourceItem == nil,
-              let navigationController = self.navigationController,
-              let index = navigationController.viewControllers.firstIndex(where: { $0 === self }),
-              index > 0 else {
-            return
-        }
-        let backButtonSourceItem = navigationController.viewControllers[index - 1].navigationItem
-        self.backButtonSourceItem = backButtonSourceItem
-        self.previousBackBarButtonItem = backButtonSourceItem.backBarButtonItem
-        backButtonSourceItem.backBarButtonItem = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
     }
 }
 
@@ -426,8 +399,7 @@ private func nagramGroups(
     llmTranslationSettingsAction: @escaping () -> Void,
     sttSettingsAction: @escaping () -> Void,
     groupProfileSettingsAction: @escaping () -> Void,
-    sessionBackupAction: @escaping () -> Void,
-    aboutAction: @escaping () -> Void
+    sessionBackupAction: @escaping () -> Void
 ) -> [NagramGroup] {
     let sensitiveContentEnabled: () -> Bool = {
         return sensitiveContentConfiguration()?.sensitiveContentEnabled ?? false
@@ -495,6 +467,7 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.HideSponsoredMessages", get: { NagramSettings.shared.hideSponsoredMessages }, set: { NagramSettings.shared.hideSponsoredMessages = $0 }),
             .toggle(titleKey: "Nagram.HidePrivateChatActivities", get: { NagramSettings.shared.hidePrivateChatActivities }, set: { NagramSettings.shared.hidePrivateChatActivities = $0 }),
         ]),
+        // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
         NagramGroup(tab: .chat, headerKey: "Nagram.Section.MessagePreservation", footerKey: "Nagram.Section.MessagePreservation.Footer", rows: [
             .toggle(titleKey: "Nagram.AntiRecall", get: { NagramSettings.shared.antiRecallEnabled }, set: { NagramSettings.shared.antiRecallEnabled = $0 }),
             .navigation(titleKey: "Nagram.AntiRecallRules", action: antiRecallRulesAction),
@@ -572,9 +545,9 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.VideoPIPSwipeUp", get: { NagramSettings.shared.videoPIPSwipeDirection == "up" }, set: { NagramSettings.shared.videoPIPSwipeDirection = $0 ? "up" : "none" }),
         ]),
         // 其他
+        // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
         NagramGroup(tab: .other, headerKey: "Nagram.Tab.Other", footerKey: "Nagram.LocalPremium.Footer", rows: [
             .toggle(titleKey: "Nagram.LocalPremium", get: { NagramSettings.shared.localPremiumEnabled }, set: { NagramSettings.shared.localPremiumEnabled = $0 }),
-            .navigation(titleKey: "Nagram.About", action: aboutAction),
         ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Experimental", footerKey: "Nagram.MediaMetadata.Footer", rows: [
             .toggle(titleKey: "Nagram.MediaMetadata", get: { NagramSettings.shared.mediaMetadataEnabled }, set: { NagramSettings.shared.mediaMetadataEnabled = $0 }),
@@ -599,6 +572,7 @@ private func nagramGroups(
             .toggleWithEnabled(titleKey: "Nagram.DisableFiltering", get: sensitiveContentEnabled, set: setSensitiveContentEnabled, enabled: sensitiveContentCanAdjust, enableInteractiveChanges: false),
             .toggle(titleKey: "Nagram.SkipSensitiveContentWarning", get: { NagramSettings.shared.skipSensitiveContentWarning }, set: { NagramSettings.shared.skipSensitiveContentWarning = $0 }),
         ]),
+        // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
         NagramGroup(tab: .other, headerKey: "Nagram.Section.GhostMode", footerKey: "Nagram.GhostMode.Footer", rows: [
             .toggle(titleKey: "Nagram.GhostMode", get: { NagramSettings.shared.ghostModeEnabled }, set: { NagramSettings.shared.ghostModeEnabled = $0 }),
             .toggle(titleKey: "Nagram.DisableReadReceipts", get: { NagramSettings.shared.disableReadReceipts }, set: { NagramSettings.shared.disableReadReceipts = $0 }),
@@ -712,11 +686,10 @@ public func nagramSettingsSearchEntries(lang: String) -> [NagramSettingsSearchEn
         llmTranslationSettingsAction: {},
         sttSettingsAction: {},
         groupProfileSettingsAction: {},
-        sessionBackupAction: {},
-        aboutAction: {}
+        sessionBackupAction: {}
     )
 
-    let rootTitle = "t." // MARK: NEXTGRAM — Preserve the downstream name in settings search.
+    let rootTitle = "t." // MARK: NEXTGRAM — Preserve t. branding in Nagram settings search.
     var entries: [NagramSettingsSearchEntry] = [
         NagramSettingsSearchEntry(id: "nagram", title: rootTitle, alternate: [], breadcrumbs: [], makeController: { context in
             return nagramSettingsController(context: context)
@@ -790,7 +763,7 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
     case header(stableId: Int32, section: Int32, text: String)
     case toggle(stableId: Int32, section: Int32, title: String, value: Bool, enabled: Bool, enableInteractiveChanges: Bool, index: Int)
     case disclosure(stableId: Int32, section: Int32, title: String, label: String, index: Int)
-    case input(stableId: Int32, section: Int32, title: String, text: String, placeholder: String, isSecret: Bool, rightAligned: Bool, index: Int)
+    case input(stableId: Int32, section: Int32, title: String, text: String, placeholder: String, isSecret: Bool, index: Int)
     case slider(stableId: Int32, section: Int32, title: String?, minValue: Int32, maxValue: Int32, value: Int32, index: Int)
     case footer(stableId: Int32, section: Int32, text: String)
 
@@ -799,7 +772,7 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
         case let .header(_, section, _): return section
         case let .toggle(_, section, _, _, _, _, _): return section
         case let .disclosure(_, section, _, _, _): return section
-        case let .input(_, section, _, _, _, _, _, _): return section
+        case let .input(_, section, _, _, _, _, _): return section
         case let .slider(_, section, _, _, _, _, _): return section
         case let .footer(_, section, _): return section
         }
@@ -810,7 +783,7 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
         case let .header(stableId, _, _): return stableId
         case let .toggle(stableId, _, _, _, _, _, _): return stableId
         case let .disclosure(stableId, _, _, _, _): return stableId
-        case let .input(stableId, _, _, _, _, _, _, _): return stableId
+        case let .input(stableId, _, _, _, _, _, _): return stableId
         case let .slider(stableId, _, _, _, _, _, _): return stableId
         case let .footer(stableId, _, _): return stableId
         }
@@ -827,8 +800,8 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
         case let .disclosure(lId, lSec, lTitle, lLabel, lIndex):
             if case let .disclosure(rId, rSec, rTitle, rLabel, rIndex) = rhs { return lId == rId && lSec == rSec && lTitle == rTitle && lLabel == rLabel && lIndex == rIndex }
             return false
-        case let .input(lId, lSec, lTitle, lText, lPlaceholder, lIsSecret, lRightAligned, lIndex):
-            if case let .input(rId, rSec, rTitle, rText, rPlaceholder, rIsSecret, rRightAligned, rIndex) = rhs { return lId == rId && lSec == rSec && lTitle == rTitle && lText == rText && lPlaceholder == rPlaceholder && lIsSecret == rIsSecret && lRightAligned == rRightAligned && lIndex == rIndex }
+        case let .input(lId, lSec, lTitle, lText, lPlaceholder, lIsSecret, lIndex):
+            if case let .input(rId, rSec, rTitle, rText, rPlaceholder, rIsSecret, rIndex) = rhs { return lId == rId && lSec == rSec && lTitle == rTitle && lText == rText && lPlaceholder == rPlaceholder && lIsSecret == rIsSecret && lIndex == rIndex }
             return false
         case let .slider(lId, lSec, lTitle, lMin, lMax, lValue, lIndex):
             if case let .slider(rId, rSec, rTitle, rMin, rMax, rValue, rIndex) = rhs { return lId == rId && lSec == rSec && lTitle == rTitle && lMin == rMin && lMax == rMax && lValue == rValue && lIndex == rIndex }
@@ -849,7 +822,7 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
             return NagramSettingsRowTag(index: index)
         case let .disclosure(_, _, _, _, index):
             return NagramSettingsRowTag(index: index)
-        case let .input(_, _, _, _, _, _, _, index):
+        case let .input(_, _, _, _, _, _, index):
             return NagramSettingsRowTag(index: index)
         case let .slider(_, _, _, _, _, _, index):
             return NagramSettingsRowTag(index: index)
@@ -875,8 +848,8 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
             }, longTapAction: {
                 arguments.copyDeepLink(index)
             }, tag: self.tag)
-        case let .input(_, section, title, text, placeholder, isSecret, rightAligned, index):
-            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: text, placeholder: placeholder, type: isSecret ? .password : .regular(capitalization: false, autocorrection: false), alignment: rightAligned ? .right : .default, clearType: .onFocus, tag: self.tag, sectionId: section, textUpdated: { updatedText in
+        case let .input(_, section, title, text, placeholder, isSecret, index):
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: text, placeholder: placeholder, type: isSecret ? .password : .regular(capitalization: false, autocorrection: false), clearType: .onFocus, tag: self.tag, sectionId: section, textUpdated: { updatedText in
                 arguments.inputUpdated(index, updatedText)
             }, action: {
             })
@@ -1023,15 +996,12 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         pushControllerImpl?(nagramGroupProfileSettingsController(context: context))
     }, sessionBackupAction: {
         pushControllerImpl?(nagramSessionBackupController(context: context))
-    }, aboutAction: {
-        pushControllerImpl?(nagramAboutController(context: context))
     })
     let flatRows: [NagramRow] = groups.flatMap { $0.rows }
     let flatRowDeepLinks: [String] = groups.flatMap { group in
         group.rows.map { nagramSettingsDeepLink(tab: group.tab, row: $0) }
     }
     let deepLinkTarget = nagramDeepLinkTarget(deepLinkPath: deepLinkPath, groups: groups)
-    let isRoot = deepLinkPath == nil
     let autoOpenNavigationAction: (() -> Void)? = deepLinkTarget.rowIndex.flatMap { rowIndex -> (() -> Void)? in
         guard flatRows.indices.contains(rowIndex), case let .navigation(_, action) = flatRows[rowIndex] else {
             return nil
@@ -1040,7 +1010,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
     }
 
     let tabPromise = ValuePromise<Int32>(deepLinkTarget.tab.rawValue, ignoreRepeated: true)
-    let searchPromise = ValuePromise<String>("", ignoreRepeated: true)
 
     // 本地刷新计数:toggle/choice 改值后 bump() 触发重建。slider 不 bump(节点自显示)。
     let updatePromise = ValuePromise<Int32>(0, ignoreRepeated: false)
@@ -1059,16 +1028,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
             break
         }
     }, disclosureAction: { index in
-        if index <= -100 {
-            let rawValue = Int32(-100 - index)
-            if let tab = NagramTab(rawValue: rawValue) {
-                pushControllerImpl?(nagramSettingsController(context: context, deepLinkPath: tab.deepLinkSection))
-            }
-            return
-        }
-        guard flatRows.indices.contains(index) else {
-            return
-        }
         let row = flatRows[index]
         if case let .choice(titleKey, prefix, options, _, set) = row {
             // 参照 InstalledStickerPacksController.openSuggestOptions:disclosure 点击弹 ActionSheet 选档。
@@ -1147,13 +1106,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
             action()
         }
     }, inputUpdated: { index, value in
-        if index == -1 {
-            searchPromise.set(value)
-            return
-        }
-        guard flatRows.indices.contains(index) else {
-            return
-        }
         if case let .input(_, _, _, set, _, _) = flatRows[index] {
             set(value)
         }
@@ -1176,7 +1128,7 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
 
     let signal = combineLatest(queue: .mainQueue(),
         context.sharedContext.presentationData,
-        combineLatest(tabPromise.get(), searchPromise.get()),
+        tabPromise.get(),
         updatePromise.get(),
         contentSettingsConfigurationPromise.get(),
         context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.callListSettings])
@@ -1185,61 +1137,24 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         }
     )
     |> deliverOnMainQueue
-    |> map { presentationData, selection, _, contentSettingsConfiguration, showCallsTab -> (ItemListControllerState, (ItemListNodeState, Any)) in
-        let selectedTab = selection.0
-        let searchQuery = selection.1.trimmingCharacters(in: .whitespacesAndNewlines)
+    |> map { presentationData, selectedTab, _, contentSettingsConfiguration, showCallsTab -> (ItemListControllerState, (ItemListNodeState, Any)) in
         currentShowCallsTab = showCallsTab
         currentContentSettingsConfiguration = contentSettingsConfiguration
         let lang = presentationData.strings.baseLanguageCode
 
+        // stableId 必须全局唯一且稳定:遍历所有 group 全局递增分配,当前 tab 只取子集。
+        // 否则切 tab 时同 stableId 指向不同类型 entry,ItemList diff 会用错 item 类型 update node 而崩溃。
         var entries: [NagramSettingsEntry] = []
         var initialScrollToItem: ListViewScrollToItem?
         var stableId: Int32 = 0
         var globalRowIndex = 0
-        let appendRow: (NagramRow, Int, Int32, Int32) -> Void = { row, rowIndex, rowStableId, sectionId in
-            switch row {
-            case let .toggle(titleKey, get, _, isVisible):
-                guard isVisible() else { return }
-                entries.append(.toggle(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), value: get(), enabled: true, enableInteractiveChanges: true, index: rowIndex))
-            case let .toggleWithEnabled(titleKey, get, _, enabled, enableInteractiveChanges):
-                entries.append(.toggle(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), value: get(), enabled: enabled(), enableInteractiveChanges: enableInteractiveChanges, index: rowIndex))
-            case let .choice(titleKey, prefix, _, current, _):
-                let currentValue = titleKey == "Nagram.ChatListMessagePreviewStyle" && NagramSettings.shared.chatListCompact ? NagramChatListMessagePreviewStyle.two.rawValue : current()
-                entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: ngI18n("\(prefix).\(currentValue)", lang), index: rowIndex))
-            case let .input(titleKey, placeholderKey, get, _, isSecret, isVisible):
-                if isVisible() {
-                    entries.append(.input(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), text: get(), placeholder: ngI18n(placeholderKey, lang), isSecret: isSecret, rightAligned: titleKey == "Nagram.DeletedMessageIndicatorColor", index: rowIndex))
-                }
-            case let .startupFolder(titleKey):
-                entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: nagramChatListStartupFolderLabel(accountPeerId: context.account.peerId.toInt64(), strings: presentationData.strings, lang: lang), index: rowIndex))
-            case let .slider(titleKey, minValue, maxValue, get, _, isVisible):
-                if isVisible() {
-                    entries.append(.slider(stableId: rowStableId, section: sectionId, title: titleKey.map { ngI18n($0, lang) }, minValue: minValue, maxValue: maxValue, value: get(), index: rowIndex))
-                }
-            case let .navigation(titleKey, _):
-                entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: "", index: rowIndex))
-            }
-        }
-
-        if isRoot {
-            entries.append(.input(stableId: -10, section: 0, title: "", text: selection.1, placeholder: ngI18n("Nagram.Settings.Search", lang), isSecret: false, rightAligned: false, index: -1))
-            if searchQuery.isEmpty {
-                entries.append(.header(stableId: -9, section: 1, text: ngI18n("Nagram.Settings.Sections", lang)))
-                for tab in NagramTab.allCases {
-                    entries.append(.disclosure(stableId: -8 + tab.rawValue, section: 1, title: ngI18n(tab.titleKey, lang), label: "", index: -100 - Int(tab.rawValue)))
-                }
-            }
-        }
-
-        let normalizedSearchQuery = normalizedNagramDeepLinkToken(searchQuery)
         for (groupIndex, group) in groups.enumerated() {
-            let sectionId = Int32(groupIndex + (isRoot ? 2 : 0))
+            let isCurrent = group.tab.rawValue == selectedTab
+            let sectionId = Int32(groupIndex)
+
             let headerStableId = stableId
             stableId += 1
-            let groupTitle = group.headerKey.map { ngI18n($0, lang) } ?? ngI18n(group.tab.titleKey, lang)
-            let groupMatchesSearch = isRoot && !searchQuery.isEmpty && groupTitle.localizedCaseInsensitiveContains(searchQuery)
-            var didAppendSearchHeader = false
-            if !isRoot && group.tab.rawValue == selectedTab, let headerKey = group.headerKey {
+            if isCurrent, let headerKey = group.headerKey {
                 entries.append(.header(stableId: headerStableId, section: sectionId, text: ngI18n(headerKey, lang)))
             }
 
@@ -1248,51 +1163,55 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
                 stableId += 1
                 let rowIndex = globalRowIndex
                 globalRowIndex += 1
-                let title = ngI18n(nagramRowTitleKey(row), lang)
-                let rowMatchesSearch = groupMatchesSearch || title.localizedCaseInsensitiveContains(searchQuery) || nagramRowDeepLinkTokens(row).contains(where: { $0.contains(normalizedSearchQuery) })
-                let shouldAppend = (!isRoot && group.tab.rawValue == selectedTab) || (isRoot && !searchQuery.isEmpty && rowMatchesSearch)
-                if shouldAppend {
-                    if isRoot && !didAppendSearchHeader {
-                        let searchHeader = group.headerKey == nil ? ngI18n(group.tab.titleKey, lang) : "\(ngI18n(group.tab.titleKey, lang)) · \(groupTitle)"
-                        entries.append(.header(stableId: headerStableId, section: sectionId, text: searchHeader))
-                        didAppendSearchHeader = true
-                    }
-                    if !isRoot && deepLinkTarget.rowIndex == rowIndex {
+                if isCurrent {
+                    if deepLinkTarget.rowIndex == rowIndex {
                         initialScrollToItem = ListViewScrollToItem(index: entries.count, position: .visible, animated: false, curve: .Default(duration: nil), directionHint: .Down)
                     }
-                    appendRow(row, rowIndex, rowStableId, sectionId)
+                    switch row {
+                    case let .toggle(titleKey, get, _, isVisible):
+                        guard isVisible() else { continue }
+                        entries.append(.toggle(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), value: get(), enabled: true, enableInteractiveChanges: true, index: rowIndex))
+                    case let .toggleWithEnabled(titleKey, get, _, enabled, enableInteractiveChanges):
+                        entries.append(.toggle(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), value: get(), enabled: enabled(), enableInteractiveChanges: enableInteractiveChanges, index: rowIndex))
+                    case let .choice(titleKey, prefix, _, current, _):
+                        let currentValue = titleKey == "Nagram.ChatListMessagePreviewStyle" && NagramSettings.shared.chatListCompact ? NagramChatListMessagePreviewStyle.two.rawValue : current()
+                        entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: ngI18n("\(prefix).\(currentValue)", lang), index: rowIndex))
+                    case let .input(titleKey, placeholderKey, get, _, isSecret, isVisible):
+                        if isVisible() {
+                            entries.append(.input(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), text: get(), placeholder: ngI18n(placeholderKey, lang), isSecret: isSecret, index: rowIndex))
+                        }
+                    case let .startupFolder(titleKey):
+                        entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: nagramChatListStartupFolderLabel(accountPeerId: context.account.peerId.toInt64(), strings: presentationData.strings, lang: lang), index: rowIndex))
+                    case let .slider(titleKey, minValue, maxValue, get, _, isVisible):
+                        if isVisible() {
+                            entries.append(.slider(stableId: rowStableId, section: sectionId, title: titleKey.map { ngI18n($0, lang) }, minValue: minValue, maxValue: maxValue, value: get(), index: rowIndex))
+                        }
+                    case let .navigation(titleKey, _):
+                        entries.append(.disclosure(stableId: rowStableId, section: sectionId, title: ngI18n(titleKey, lang), label: "", index: rowIndex))
+                    }
                 }
             }
 
             let footerStableId = stableId
             stableId += 1
-            if !isRoot && group.tab.rawValue == selectedTab, let footerKey = group.footerKey {
+            if isCurrent, let footerKey = group.footerKey {
                 entries.append(.footer(stableId: footerStableId, section: sectionId, text: ngI18n(footerKey, lang)))
             }
         }
 
-        if isRoot && !searchQuery.isEmpty && entries.count == 1 {
-            entries.append(.footer(stableId: Int32.max, section: 1, text: ngI18n("Nagram.Settings.Search.Empty", lang)))
-        }
-
-        let title = isRoot ? "t." : ngI18n(deepLinkTarget.tab.titleKey, lang)
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(title), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
-        let ensureVisibleItemTag = isRoot ? nil : deepLinkTarget.rowIndex.map { NagramSettingsRowTag(index: $0) }
-        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: ensureVisibleItemTag, initialScrollToItem: initialScrollToItem, animateChanges: false)
+        let tabTitles = NagramTab.allCases.map { ngI18n($0.titleKey, lang) }
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .sectionControl(tabTitles, Int(selectedTab)), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: deepLinkTarget.rowIndex.map { NagramSettingsRowTag(index: $0) }, initialScrollToItem: initialScrollToItem, animateChanges: false)
 
         return (controllerState, (listState, arguments))
     }
     |> afterDisposed {
         updateSensitiveContentDisposable.dispose()
+        // MARK: NEXTGRAM — Cancel Ayu history import/export with the settings screen.
         deletedMessagesArchiveDisposable.dispose()
     }
 
-    let controller: ItemListController
-    if isRoot {
-        controller = NagramSettingsItemListController(context: context, state: signal)
-    } else {
-        controller = ItemListController(context: context, state: signal)
-    }
+    let controller = ItemListController(context: context, state: signal)
     controller.navigationPresentation = .default
     if let autoOpenNavigationAction {
         var didAutoOpenNavigation = false
@@ -1322,6 +1241,9 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
                 })
             }
         }
+    }
+    controller.titleControlValueChanged = { index in
+        tabPromise.set(Int32(index))
     }
     presentControllerImpl = { [weak controller] c, presentationArguments in
         controller?.present(c, in: .window(.root), with: presentationArguments)

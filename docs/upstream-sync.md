@@ -1,6 +1,6 @@
 # Nagram upstream and the t. overlay
 
-The canonical app base is [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS), currently `ecc7b4df3ce338d5ad6f4f48c8b46dbcb44d192c`. `versions.json` records the revision. The initial imported snapshot was `db0722d6`.
+The canonical app base is [NextAlone/Nagram-iOS](https://github.com/NextAlone/Nagram-iOS), currently `96ae08ca80ffe9ddc9906de69bdd3b257814b381`. `versions.json` records the revision. The initial imported snapshot was `db0722d6`.
 
 t. keeps its independent branding, private API and signing configuration, App Store metadata, CI, and these Ayu features on top:
 
@@ -12,6 +12,6 @@ t. keeps its independent branding, private API and signing configuration, App St
 
 AyuSync remains deferred. Screenshot notifications remain enabled; local Premium does not grant server subscription features.
 
-Unrelated app behavior follows Nagram. The original fork's combined chat filters, custom sorting, music controls, default text formatting, contact defaults, background-location notification fallback and extra account limits are removed. The app uses its signed notification service extension and normal APNs registration.
+Unrelated app behavior follows Nagram. UID-based developer/sponsor badges are removed, including their lookup lists, views, tooltips and localization. Keep this explicit downstream exception when syncing Nagram. The settings layout, navigation, startup and notification behavior follow Nagram; the original fork's About screen, agreement prompt, settings redesign and notification-test hooks are removed. The original fork's combined chat filters, custom sorting, music controls, default text formatting, contact defaults, background-location notification fallback and extra account limits are removed. The app uses its signed notification service extension and normal APNs registration.
 
 For every update, apply the changes after the recorded Nagram revision onto `master`, preserve this overlay and private configuration, and review overlaps. Keep the README's source attribution current without adding the former product name or restoring its removed feature list. Run a full app build with all six signed extensions before accepting a release. Never merge upstream commit history into the reset public history or publish a compiled app, clear compiler cache, identifiers or credentials as a public artifact.

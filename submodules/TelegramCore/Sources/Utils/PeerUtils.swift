@@ -31,10 +31,6 @@ public extension Peer {
         }
         
         if let restrictionInfo = restrictionInfo {
-            // MARK: NEXTGRAM — A local opt-in may ignore every client-side restriction reason.
-            if contentSettings.ignoreContentRestrictionReasons.contains("*") {
-                return nil
-            }
             for rule in restrictionInfo.rules {
                 if rule.reason == "sensitive" {
                     continue

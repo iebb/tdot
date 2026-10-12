@@ -1,4 +1,3 @@
-// MARK: NEXTGRAM — t. downstream branding.
 import Foundation
 import UIKit
 import Display
@@ -34,7 +33,6 @@ enum SettingsSection: Int, CaseIterable {
     case support
 }
 
-// MARK: NEXTGRAM — Sync Nagram's hidden-tab visibility.
 func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, isExpanded: Bool, nagramShowCallsTab: Bool) -> [(AnyHashable, [PeerInfoScreenItem])] {
     guard let data = data else {
         return []
@@ -234,7 +232,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
     items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 1, text: presentationData.strings.Settings_SavedMessages, icon: PresentationResourcesSettings.savedMessages, action: {
         interaction.openSettings(.savedMessages)
     }))
-    // MARK: NEXTGRAM — 联系人 / 通话记录入口只在对应 tab 不在底栏时显示
+    // MARK: NAGRAM — 联系人 / 通话记录入口只在对应 tab 不在底栏时显示
     let nagramBottomBarSettings = NagramSettings.shared.bottomBarSettings
     let nagramVisibleTabs = nagramBottomBarSettings.isBottomBarVisible ? nagramBottomBarSettings.visibleNavigationItems : []
     if !nagramVisibleTabs.contains(.contacts) {
@@ -266,7 +264,7 @@ func settingsItems(data: PeerInfoScreenData?, context: AccountContext, presentat
         interaction.openSettings(.chatFolders)
     }))
 
-    // MARK: NAGRAM — Nextgram 设置入口；内部保留 Nagram 命名以便同步上游。
+    // MARK: NEXTGRAM — t. branding; retain the normal Nagram settings entry.
     items[.nagram]!.append(PeerInfoScreenDisclosureItem(id: 50, text: "t.", icon: PresentationResourcesSettings.settings, longPressAction: {
         interaction.openSettings(.nagramDebug)
     }, action: {

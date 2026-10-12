@@ -84,7 +84,7 @@ public final class AuthorizationSequenceSplashController: ViewController {
         
         // MARK: NAGRAM
         // MARK: NEXTGRAM
-        self.startButton = SolidRoundedButtonNode(title: "Start with Nextgram", theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5, isShimmering: true)
+        self.startButton = SolidRoundedButtonNode(title: "Start with t.", theme: SolidRoundedButtonTheme(theme: theme), glass: false, height: 50.0, cornerRadius: 50.0 * 0.5, isShimmering: true)
         self.startButton.accessibilityIdentifier = "Auth.Welcome.StartButton"
 
 

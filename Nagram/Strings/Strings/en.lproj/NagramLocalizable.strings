@@ -266,10 +266,6 @@
 "Nagram.AccountInfo.CopyId" = "Copy ID";
 "Nagram.AccountInfo.CopyDC" = "Copy DC";
 "Nagram.AccountInfo.CopyRegDate" = "Copy Registration Date";
-"Nagram.ProfileBadge.Developer" = "Developer";
-"Nagram.ProfileBadge.Sponsor" = "Sponsor";
-"Nagram.ProfileBadge.Developer.Info" = "A core Nagram developer who builds and maintains the app.";
-"Nagram.ProfileBadge.Sponsor.Info" = "A Nagram sponsor whose support helps keep the project going.";
 "Nagram.RegDate.LoadFailed" = "Failed to load, try again later";
 "Nagram.RegDate.LoadFailedWithFallback" = "%@ (exact date failed to load)";
 "Nagram.RegDate.Approximately" = "Approximately %@";
@@ -524,17 +520,6 @@ With iCloud Keychain sync on, backups follow your other devices and appear on th
 // MARK: NEXTGRAM — t. branding and the Ayu overlay.
 "Nagram.LocalPremium" = "Enable Local Premium";
 "Nagram.LocalPremium.Footer" = "Unlocks client-side Premium UI and local limit checks only. Server limits, paid features, and the account’s real Premium status are still verified by Telegram, so some features may not work.";
-"Nagram.About" = "About t.";
-"Nagram.About.Description" = "t. is a third-party enhanced client based on Telegram-iOS and Nagram-iOS. It focuses on message preservation, privacy tools, and interface customization for Chinese-speaking users.";
-"Nagram.About.GitHub" = "GitHub Repository";
-"Nagram.About.Group" = "Support & Issues";
-"Nagram.About.Channel" = "Source Code";
-"Nagram.About.Agreement" = "t. Usage Agreement";
-"Nagram.About.Disclaimer" = "t. is not an official Telegram client. Using t. may result in account restrictions or bans. The t. developers are not responsible for account, data, or other losses caused by using this software.";
-"Nagram.UsageAgreement.AlertTitle" = "Please Read the Usage Agreement";
-"Nagram.UsageAgreement.AlertText" = "t. is an unofficial third-party client. Its use may result in account restrictions or bans, and you accept those risks. Please read the t. Usage Agreement before continuing.";
-"Nagram.UsageAgreement.Read" = "Read Agreement";
-"Nagram.UsageAgreement.Accepted" = "I Have Read It";
 "Nagram.Section.MessagePreservation" = "Message Preservation";
 "Nagram.Section.MessagePreservation.Footer" = "Preserved messages remain only on this device. Media still depends on the local cache.";
 "Nagram.AntiRecall" = "Deleted Message Interception";

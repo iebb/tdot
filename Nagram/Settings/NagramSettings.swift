@@ -211,8 +211,6 @@ public final class NagramSettings {
     /// 仅放宽客户端 Premium 界面和本地额度判断；服务端权益仍取决于真实订阅。
     @NagramDefault("nagram.localPremiumEnabled", false)
     public var localPremiumEnabled: Bool
-    @NagramDefault("nagram.usageAgreementAcceptedVersion", Int32(0))
-    public var usageAgreementAcceptedVersion: Int32
     @NagramDefault("nagram.antiRecallWhitelist", "")
     public var antiRecallWhitelist: String
     @NagramDefault("nagram.antiRecallBlacklist", "")

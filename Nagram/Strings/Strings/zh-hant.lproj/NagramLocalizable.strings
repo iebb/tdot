@@ -266,10 +266,6 @@
 "Nagram.AccountInfo.CopyId" = "複製 ID";
 "Nagram.AccountInfo.CopyDC" = "複製 DC";
 "Nagram.AccountInfo.CopyRegDate" = "複製註冊日期";
-"Nagram.ProfileBadge.Developer" = "開發者";
-"Nagram.ProfileBadge.Sponsor" = "贊助者";
-"Nagram.ProfileBadge.Developer.Info" = "Nagram 核心開發者，參與構建和維護這個應用。";
-"Nagram.ProfileBadge.Sponsor.Info" = "Nagram 贊助者，感謝他們支持專案持續維護。";
 "Nagram.RegDate.LoadFailed" = "載入失敗，稍後重試";
 "Nagram.RegDate.LoadFailedWithFallback" = "%@（精確日期載入失敗）";
 "Nagram.RegDate.Approximately" = "約為 %@";
@@ -524,17 +520,6 @@
 // MARK: NEXTGRAM — t. branding and the Ayu overlay.
 "Nagram.LocalPremium" = "啟用本機大會員";
 "Nagram.LocalPremium.Footer" = "僅解鎖用戶端介面和本機額度判斷。伺服器額度、付費功能及帳號真實會員狀態仍由 Telegram 驗證，部分功能可能無法使用。";
-"Nagram.About" = "關於 t.";
-"Nagram.About.Description" = "t. 是基於 Telegram-iOS 和 Nagram-iOS 開發的第三方增強用戶端，面向中文使用者，專注於訊息保留、隱私增強和介面自訂。";
-"Nagram.About.GitHub" = "GitHub 儲存庫";
-"Nagram.About.Group" = "官方群組 @t._Chat";
-"Nagram.About.Channel" = "官方頻道 @t._iOS";
-"Nagram.About.Agreement" = "t. 使用協議";
-"Nagram.About.Disclaimer" = "t. 並非 Telegram 官方用戶端。使用 t. 可能帶來帳號限制或封禁風險；因使用本軟體造成的帳號、資料或其他損失，t. 開發者不承擔責任。";
-"Nagram.UsageAgreement.AlertTitle" = "請閱讀使用協議";
-"Nagram.UsageAgreement.AlertText" = "t. 是第三方非官方用戶端。使用可能導致帳號受限或封禁，相關風險由使用者自行承擔。繼續前請閱讀《t. 使用協議》。";
-"Nagram.UsageAgreement.Read" = "前往閱讀";
-"Nagram.UsageAgreement.Accepted" = "已閱讀";
 "Nagram.Section.MessagePreservation" = "訊息保留";
 "Nagram.Section.MessagePreservation.Footer" = "保留內容只存在於本機；媒體能否繼續檢視仍取決於本機快取。";
 "Nagram.AntiRecall" = "刪除訊息攔截";

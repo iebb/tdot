@@ -538,7 +538,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
     private let selectedMessages: Signal<Set<MessageId>?, NoError>
     var messageTransitionNode: () -> ChatMessageTransitionNodeImpl?
     private let mode: ChatHistoryListMode
-    private let musicPlaylistSearchQuery: Signal<String, NoError>? // MARK: NAGRAM
     
     var enableUnreadAlignment: Bool = true
     var areContentAnimationsEnabled: Bool = false
@@ -875,7 +874,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         controllerInteraction: ChatControllerInteraction,
         selectedMessages: Signal<Set<MessageId>?, NoError>,
         mode: ChatHistoryListMode = .bubbles,
-        musicPlaylistSearchQuery: Signal<String, NoError>? = nil,
         rotated: Bool = false,
         isChatPreview: Bool,
         messageTransitionNode: @escaping () -> ChatMessageTransitionNodeImpl?
@@ -898,7 +896,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
         self.selectedMessages = selectedMessages
         self.messageTransitionNode = messageTransitionNode
         self.mode = mode
-        self.musicPlaylistSearchQuery = musicPlaylistSearchQuery // MARK: NAGRAM
         
         if let data = context.currentAppConfiguration.with({ $0 }).data {
             if let _ = data["ios_killswitch_disable_unread_alignment"] {
@@ -2056,15 +2053,13 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                 return historyViewUpdateValue
             }
         }
-        // MARK: NEXTGRAM — Recompute playlists, retained-message opacity, regex filters and custom transcription together.
-        let currentMusicPlaylistSearchQuery = Atomic<String>(value: "")
+        // MARK: NEXTGRAM — Recompute retained-message opacity with normal Nagram filter/transcription changes.
         let customTranscriptionEnabled = nagramSTTSettingsSignal()
         |> deliverOnMainQueue
         |> map { _ in NagramTranscriptionService.isEnabled }
         |> distinctUntilChanged
-        historyViewUpdate = combineLatest(queue: .mainQueue(), historyViewUpdate, nagramRegexFiltersSignal(), self.musicPlaylistSearchQuery ?? .single(""), nagramBoolSignal("nagram.deletedMessageSemiTransparent", defaultValue: false), customTranscriptionEnabled)
-        |> map { update, _, query, _, _ in
-            let _ = currentMusicPlaylistSearchQuery.swap(query)
+        historyViewUpdate = combineLatest(queue: .mainQueue(), historyViewUpdate, nagramRegexFiltersSignal(), nagramBoolSignal("nagram.deletedMessageSemiTransparent", defaultValue: false), customTranscriptionEnabled)
+        |> map { update, _, _, _ in
             return update
         }
                 
@@ -2404,7 +2399,6 @@ public final class ChatHistoryListNodeImpl: ASDisplayNode, ChatHistoryNode, Chat
                     adMessage: allAdMessages.fixed,
                     dynamicAdMessages: allAdMessages.opportunistic,
                     isMusicPlaylist: isMusicPlaylist,
-                    musicPlaylistSearchQuery: currentMusicPlaylistSearchQuery.with({ $0 }),
                     pinToTopStableId: pinToTopStableId
                 )
                 let lastHeaderId = filteredEntries.last.flatMap { listMessageDateHeaderId(timestamp: $0.index.timestamp) } ?? 0
