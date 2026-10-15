@@ -396,6 +396,7 @@ private func nagramGroups(
     exportDeletedMessagesAction: @escaping () -> Void,
     importDeletedMessagesAction: @escaping () -> Void,
     messageMenuAction: @escaping () -> Void,
+    textStyleMenuAction: @escaping () -> Void,
     regexFiltersAction: @escaping () -> Void,
     inlineBotRulesAction: @escaping () -> Void,
     llmTranslationSettingsAction: @escaping () -> Void,
@@ -532,7 +533,12 @@ private func nagramGroups(
         NagramGroup(tab: .chat, headerKey: "Nagram.Section.Sending", footerKey: nil, rows: [
             .toggle(titleKey: "Nagram.DisableSendAsButton", get: { NagramSettings.shared.disableSendAsButton }, set: { NagramSettings.shared.disableSendAsButton = $0 }),
             .toggle(titleKey: "Nagram.SendWithReturnKey", get: { NagramSettings.shared.sendWithReturnKey }, set: { NagramSettings.shared.sendWithReturnKey = $0 }),
-            .toggle(titleKey: "Nagram.TextStyleToolbar", get: { NagramSettings.shared.showTextStyleToolbar }, set: { NagramSettings.shared.showTextStyleToolbar = $0 }),
+            .choice(titleKey: "Nagram.TextStyleToolbar", prefix: "Nagram.TextStyleToolbar", options: NagramTextStyleToolbarMode.allCases.map(\.rawValue), current: { NagramSettings.shared.textStyleToolbarMode.rawValue }, set: { value in
+                if let mode = NagramTextStyleToolbarMode(rawValue: value) {
+                    NagramSettings.shared.textStyleToolbarMode = mode
+                }
+            }),
+            .navigation(titleKey: "Nagram.TextStyleMenu", action: textStyleMenuAction),
             .toggle(titleKey: "Nagram.HideRecordingButton", get: { NagramSettings.shared.hideRecordingButton }, set: { NagramSettings.shared.hideRecordingButton = $0 }),
         ]),
         NagramGroup(tab: .chat, headerKey: "Nagram.Section.Gesture", footerKey: "Nagram.Section.Gesture.Footer", rows: [
@@ -684,6 +690,7 @@ public func nagramSettingsSearchEntries(lang: String) -> [NagramSettingsSearchEn
         exportDeletedMessagesAction: {},
         importDeletedMessagesAction: {},
         messageMenuAction: {},
+        textStyleMenuAction: {},
         regexFiltersAction: {},
         inlineBotRulesAction: {},
         llmTranslationSettingsAction: {},
@@ -987,6 +994,8 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         importDeletedMessages()
     }, messageMenuAction: {
         pushControllerImpl?(nagramMessageMenuSettingsController(context: context))
+    }, textStyleMenuAction: {
+        pushControllerImpl?(nagramTextStyleMenuSettingsController(context: context))
     }, regexFiltersAction: {
         pushControllerImpl?(nagramRegexFilterSettingsController(context: context))
     }, inlineBotRulesAction: {
