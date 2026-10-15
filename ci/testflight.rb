@@ -24,7 +24,19 @@ class AppStoreConnect
     req['Accept']='application/json'
     req['Content-Type']='application/json'
     req.body=JSON.generate(body) unless body.nil?
-    response=Net::HTTP.start(uri.host,uri.port,use_ssl:true,open_timeout:20,read_timeout:45){|http|http.request(req)}
+    retry_delays=[5,10,20,30]
+    attempt=0
+    begin
+      response=Net::HTTP.start(uri.host,uri.port,use_ssl:true,open_timeout:20,read_timeout:45){|http|http.request(req)}
+    rescue SocketError, Timeout::Error, EOFError, Errno::ECONNRESET, Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Errno::ETIMEDOUT
+      # Reads are safe to repeat; an interrupted write may already have succeeded.
+      raise unless method==:get && attempt<retry_delays.length
+      delay=retry_delays[attempt]
+      attempt+=1
+      warn "Temporary network failure during a read-only Apple API check; retrying (#{attempt}/#{retry_delays.length})"
+      sleep delay
+      retry
+    end
     parsed=response.body.to_s.empty? ? {} : JSON.parse(response.body)
     unless response.code.to_i.between?(200,299)
       raise "App Store Connect #{response.code}: #{Array(parsed['errors']).map{|e|[e['code'],e['detail']].compact.join(': ')}.join('; ')}"
