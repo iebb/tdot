@@ -12,6 +12,7 @@ import ReactionImageComponent
 import AnimationCache
 import MultiAnimationRenderer
 import TelegramStringFormatting
+import CoreText
 // MARK: NAGRAM
 import NagramSettings
 
@@ -23,6 +24,21 @@ private func nextgramDeletedMessageTrashIcon(color: UIColor) -> UIImage? {
         context.scaleBy(x: size.width / 24.0, y: size.height / 24.0)
         let _ = try? drawSvgPath(context, path: "M3,5 L8,5 L9,3 L15,3 L16,5 L21,5 L21,8 L3,8 Z M6,9 L18,9 L17,21 L7,21 Z ")
     })
+}
+
+// MARK: NEXTGRAM — Metrics provider for the U+FFFC deleted-message placeholder: CoreText gives the object-replacement
+// character no intrinsic advance, so without a run delegate the layout reserves too little width and the 10pt glyph
+// (drawn centered in its attachment frame) loses its left half.
+private final class NextgramTrashRunDelegateData {
+    let ascent: CGFloat
+    let descent: CGFloat
+    let width: CGFloat
+    
+    init(ascent: CGFloat, descent: CGFloat, width: CGFloat) {
+        self.ascent = ascent
+        self.descent = descent
+        self.width = width
+    }
 }
 
 private func maybeAddRotationAnimation(_ layer: CALayer, duration: Double) {
@@ -674,6 +690,26 @@ public class ChatMessageDateAndStatusNode: ASDisplayNode {
                 let iconRange = (updatedDateText as NSString).range(of: nagramDeletedMessageIconPlaceholder)
                 if iconRange.location != NSNotFound, let icon = nextgramDeletedMessageTrashIcon(color: markerColor) {
                     attributedDateText.addAttribute(.attachment, value: icon, range: iconRange)
+                    // MARK: NEXTGRAM — Reserve the glyph's true metrics via a run delegate, matching TextNodeWithEntities.
+                    var trashRunDelegateCallbacks = CTRunDelegateCallbacks(
+                        version: kCTRunDelegateCurrentVersion,
+                        dealloc: { dataRef in
+                            Unmanaged<NextgramTrashRunDelegateData>.fromOpaque(dataRef).release()
+                        },
+                        getAscent: { dataRef in
+                            return Unmanaged<NextgramTrashRunDelegateData>.fromOpaque(dataRef).takeUnretainedValue().ascent
+                        },
+                        getDescent: { dataRef in
+                            return Unmanaged<NextgramTrashRunDelegateData>.fromOpaque(dataRef).takeUnretainedValue().descent
+                        },
+                        getWidth: { dataRef in
+                            return Unmanaged<NextgramTrashRunDelegateData>.fromOpaque(dataRef).takeUnretainedValue().width
+                        }
+                    )
+                    let trashRunDelegateData = NextgramTrashRunDelegateData(ascent: dateFont.ascender, descent: dateFont.descender, width: icon.size.width)
+                    if let trashRunDelegate = CTRunDelegateCreate(&trashRunDelegateCallbacks, Unmanaged.passRetained(trashRunDelegateData).toOpaque()) {
+                        attributedDateText.addAttribute(NSAttributedString.Key(kCTRunDelegateAttributeName as String), value: trashRunDelegate, range: iconRange)
+                    }
                 }
             }
             let (date, dateApply) = dateLayout(TextNodeLayoutArguments(attributedString: attributedDateText, backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .middle, constrainedSize: arguments.constrainedSize, alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
