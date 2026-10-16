@@ -18,7 +18,8 @@ import UIKit
 import UndoUI
 
 // MARK: NAGRAM — 增强设置页 UI。
-// 顶部 3 段(通用/消息/其他)用 ItemListControllerTitle.sectionControl;段内用 section header 分层。
+// MARK: NEXTGRAM — t. uses a category hub and focused native settings pages.
+// NagramTab remains the legacy link namespace so existing links keep working.
 // 数据驱动:nagramGroups() 描述「tab → 段内分组(header/footer/行)」,加开关只改这张表。
 // 行类型 NagramRow:toggle(开关)/ choice(disclosure + ActionSheet 弹选,下载加速)/ slider(行内百分比滑杆,贴纸尺寸)。
 // 刷新机制:本地 updatePromise + bump()。toggle/choice 改值后调 bump() 触发列表重建(在 setter 返回之后,
@@ -384,6 +385,28 @@ private struct NagramGroup {
     let headerKey: String?
     let footerKey: String?
     let rows: [NagramRow]
+
+    // MARK: NEXTGRAM — Organize the shared row table without changing preference keys.
+    var category: TDotSettingsCategory {
+        switch self.headerKey {
+        case "Nagram.Section.Interface", "TDot.Settings.Section.Glass", "Nagram.Section.Stories", "Nagram.Section.Camera", "Nagram.StickerSize", "Nagram.Section.Stickers":
+            return .appearance
+        case "TDot.Settings.Section.ChatList", "TDot.Settings.Section.Folders", "Nagram.Section.Gesture":
+            return .chats
+        case "Nagram.Section.MessageDisplay", "Nagram.Section.MessageList", "Nagram.Section.Channels", "Nagram.Section.Pangu", "Nagram.Section.MessageMenu", "Nagram.Section.Filtering", "Nagram.Section.Sending", "TDot.Settings.Section.MessageGestures":
+            return .messages
+        case "Nagram.Section.Translation", "Nagram.Section.STT":
+            return .translation
+        case "Nagram.Section.GhostMode", "Nagram.Section.Privacy", "Nagram.Section.Calls", "TDot.Settings.Section.SecretChats":
+            return .privacy
+        case "Nagram.Section.MessagePreservation", "TDot.Settings.Section.DeletedMarkers", "TDot.Settings.Section.EditedMarkers", "TDot.Settings.Section.Archive":
+            return .history
+        case "Nagram.Section.AutoInlineBot", "Nagram.Section.SessionBackup", "Nagram.Section.Sync":
+            return .automation
+        default:
+            return .advanced
+        }
+    }
 }
 
 private func nagramGroups(
@@ -415,9 +438,11 @@ private func nagramGroups(
     }
     return [
         // 通用
-        NagramGroup(tab: .general, headerKey: "Nagram.Section.Interface", footerKey: "Nagram.GlassTransparency.Footer", rows: [
+        NagramGroup(tab: .general, headerKey: "Nagram.Section.Interface", footerKey: nil, rows: [
             .navigation(titleKey: "Nagram.BottomBarLayout", action: bottomBarLayoutAction),
             .toggle(titleKey: "Nagram.HideTabBarPermissionWarnings", get: { NagramSettings.shared.hideTabBarPermissionWarnings }, set: { NagramSettings.shared.hideTabBarPermissionWarnings = $0 }),
+        ]),
+        NagramGroup(tab: .general, headerKey: "TDot.Settings.Section.Folders", footerKey: nil, rows: [
             .startupFolder(titleKey: "Nagram.ChatListStartupFolder"),
             .choice(titleKey: "Nagram.ChatListFolderTabDisplayMode", prefix: "Nagram.ChatListFolderTabDisplayMode", options: ["text", "icon", "both"], current: { NagramSettings.shared.chatListFolderTabDisplayModeValue.rawValue }, set: { NagramSettings.shared.chatListFolderTabDisplayMode = $0 }),
             .toggle(titleKey: "Nagram.ChatListFolderTabsCompact", get: { NagramSettings.shared.chatListFolderTabsCompact }, set: { NagramSettings.shared.chatListFolderTabsCompact = $0 }),
@@ -425,6 +450,8 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.HideAllChatsFolder", get: { NagramSettings.shared.hideAllChatsFolder }, set: { NagramSettings.shared.hideAllChatsFolder = $0 }),
             .toggle(titleKey: "Nagram.ShowFoldersInShareSheet", get: { NagramSettings.shared.showFoldersInShareSheet }, set: { NagramSettings.shared.showFoldersInShareSheet = $0 }),
             .toggle(titleKey: "Nagram.ChooseFolderAfterJoining", get: { NagramSettings.shared.chooseFolderAfterJoining }, set: { NagramSettings.shared.chooseFolderAfterJoining = $0 }),
+        ]),
+        NagramGroup(tab: .general, headerKey: "TDot.Settings.Section.ChatList", footerKey: nil, rows: [
             .toggle(titleKey: "Nagram.HideSavedAndArchivedMessagesInList", get: { NagramSettings.shared.hideSavedAndArchivedMessagesInList }, set: { NagramSettings.shared.hideSavedAndArchivedMessagesInList = $0 }),
             .toggle(titleKey: "Nagram.KeepNewChatsVisibleAtTop", get: { NagramSettings.shared.keepNewChatsVisibleAtTop }, set: { NagramSettings.shared.keepNewChatsVisibleAtTop = $0 }),
             .toggle(titleKey: "Nagram.DisableCommunityChatGrouping", get: { NagramSettings.shared.disableCommunityChatGrouping }, set: { NagramSettings.shared.disableCommunityChatGrouping = $0 }),
@@ -441,6 +468,8 @@ private func nagramGroups(
                     NagramSettings.shared.chatListMessagePreviewStyle = NagramChatListMessagePreviewStyle.two.rawValue
                 }
             }),
+        ]),
+        NagramGroup(tab: .general, headerKey: "TDot.Settings.Section.Glass", footerKey: "Nagram.GlassTransparency.Footer", rows: [
             .choice(titleKey: "Nagram.GlassTransparency", prefix: "Nagram.GlassTransparency", options: ["system", "custom"], current: { NagramSettings.shared.glassTransparencyModeValue.rawValue }, set: { NagramSettings.shared.glassTransparencyMode = $0 }),
             .slider(titleKey: "Nagram.GlassTransparency.OverlayOpacity", minValue: 0, maxValue: 100, get: { NagramSettings.shared.glassTransparencyPercent }, set: { NagramSettings.shared.glassTransparencyPercent = $0 }, isVisible: { NagramSettings.shared.glassTransparencyModeValue == .custom }),
             .toggle(titleKey: "Nagram.ControlHighlight", get: { NagramSettings.shared.controlHighlightEnabled }, set: { NagramSettings.shared.controlHighlightEnabled = $0 }),
@@ -471,19 +500,25 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.HideSponsoredMessages", get: { NagramSettings.shared.hideSponsoredMessages }, set: { NagramSettings.shared.hideSponsoredMessages = $0 }),
             .toggle(titleKey: "Nagram.HidePrivateChatActivities", get: { NagramSettings.shared.hidePrivateChatActivities }, set: { NagramSettings.shared.hidePrivateChatActivities = $0 }),
         ]),
-        // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
+        // MARK: NEXTGRAM — Separate preservation, markers and archive actions.
         NagramGroup(tab: .chat, headerKey: "Nagram.Section.MessagePreservation", footerKey: "Nagram.Section.MessagePreservation.Footer", rows: [
             .toggle(titleKey: "Nagram.AntiRecall", get: { NagramSettings.shared.antiRecallEnabled }, set: { NagramSettings.shared.antiRecallEnabled = $0 }),
             .navigation(titleKey: "Nagram.AntiRecallRules", action: antiRecallRulesAction),
+            .toggle(titleKey: "Nagram.PreserveBotMessages", get: { NagramSettings.shared.preserveBotMessages }, set: { NagramSettings.shared.preserveBotMessages = $0 }),
+            .toggle(titleKey: "Nagram.KeepKickedChats", get: { NagramSettings.shared.keepKickedChats }, set: { NagramSettings.shared.keepKickedChats = $0 }),
+            .toggle(titleKey: "Nagram.SaveMessageEditHistory", get: { NagramSettings.shared.saveMessageEditHistory }, set: { NagramSettings.shared.saveMessageEditHistory = $0 }),
+        ]),
+        NagramGroup(tab: .chat, headerKey: "TDot.Settings.Section.DeletedMarkers", footerKey: "TDot.Settings.Markers.Footer", rows: [
             .choice(titleKey: "Nagram.DeletedMessageIndicatorStyle", prefix: "Nagram.DeletedMessageIndicatorStyle", options: ["text", "trash", "both"], current: { NagramSettings.shared.deletedMessageIndicatorStyleValue.rawValue }, set: { NagramSettings.shared.deletedMessageIndicatorStyle = $0 }),
             .input(titleKey: "Nagram.DeletedMessageIndicatorColor", placeholderKey: "Nagram.DeletedMessageIndicatorColor.Placeholder", get: { NagramSettings.shared.deletedMessageIndicatorColor }, set: { NagramSettings.shared.deletedMessageIndicatorColor = $0 }, isSecret: false, isVisible: { true }),
             .toggle(titleKey: "Nagram.DeletedMessageSemiTransparent", get: { NagramSettings.shared.deletedMessageSemiTransparent }, set: { NagramSettings.shared.deletedMessageSemiTransparent = $0 }),
-            .toggle(titleKey: "Nagram.PreserveBotMessages", get: { NagramSettings.shared.preserveBotMessages }, set: { NagramSettings.shared.preserveBotMessages = $0 }),
-            .toggle(titleKey: "Nagram.KeepKickedChats", get: { NagramSettings.shared.keepKickedChats }, set: { NagramSettings.shared.keepKickedChats = $0 }),
+        ]),
+        NagramGroup(tab: .chat, headerKey: "TDot.Settings.Section.EditedMarkers", footerKey: "TDot.Settings.Markers.Footer", rows: [
             .choice(titleKey: "Nagram.EditedMessageIndicatorStyle", prefix: "Nagram.EditedMessageIndicatorStyle", options: ["text", "pencil", "both"], current: { NagramSettings.shared.editedMessageIndicatorStyle }, set: { NagramSettings.shared.editedMessageIndicatorStyle = $0 }),
             .input(titleKey: "Nagram.EditedMessageIndicatorText", placeholderKey: "Nagram.EditedMessageIndicatorText.Placeholder", get: { NagramSettings.shared.editedMessageIndicatorText }, set: { NagramSettings.shared.editedMessageIndicatorText = $0 }, isSecret: false, isVisible: { true }),
             .input(titleKey: "Nagram.EditedMessageIndicatorColor", placeholderKey: "Nagram.DeletedMessageIndicatorColor.Placeholder", get: { NagramSettings.shared.editedMessageIndicatorColor }, set: { NagramSettings.shared.editedMessageIndicatorColor = $0 }, isSecret: false, isVisible: { true }),
-            .toggle(titleKey: "Nagram.SaveMessageEditHistory", get: { NagramSettings.shared.saveMessageEditHistory }, set: { NagramSettings.shared.saveMessageEditHistory = $0 }),
+        ]),
+        NagramGroup(tab: .chat, headerKey: "TDot.Settings.Section.Archive", footerKey: "TDot.Settings.Archive.Footer", rows: [
             .navigation(titleKey: "Nagram.DeletedMessages.Export", action: exportDeletedMessagesAction),
             .navigation(titleKey: "Nagram.DeletedMessages.Import", action: importDeletedMessagesAction),
         ]),
@@ -541,11 +576,13 @@ private func nagramGroups(
             .navigation(titleKey: "Nagram.TextStyleMenu", action: textStyleMenuAction),
             .toggle(titleKey: "Nagram.HideRecordingButton", get: { NagramSettings.shared.hideRecordingButton }, set: { NagramSettings.shared.hideRecordingButton = $0 }),
         ]),
-        NagramGroup(tab: .chat, headerKey: "Nagram.Section.Gesture", footerKey: "Nagram.Section.Gesture.Footer", rows: [
-            .toggle(titleKey: "Nagram.RecentChats", get: { NagramSettings.shared.recentChatsEnabled }, set: { NagramSettings.shared.recentChatsEnabled = $0 }),
+        NagramGroup(tab: .chat, headerKey: "TDot.Settings.Section.MessageGestures", footerKey: nil, rows: [
             .toggle(titleKey: "Nagram.TapMessageRowToOpenContextMenu", get: { NagramSettings.shared.tapMessageRowToOpenContextMenu }, set: { NagramSettings.shared.tapMessageRowToOpenContextMenu = $0 }),
             .choice(titleKey: "Nagram.MessageDoubleTapAction", prefix: "Nagram.MessageDoubleTapAction", options: NagramMessageDoubleTapAction.allCases.map { $0.rawValue }, current: { NagramSettings.shared.messageDoubleTapActionValue.rawValue }, set: { NagramSettings.shared.messageDoubleTapAction = $0 }),
             .choice(titleKey: "Nagram.MessageDoubleTapActionWithoutEditPermission", prefix: "Nagram.MessageDoubleTapAction", options: [NagramSettings.messageDoubleTapSameAsUnified] + NagramMessageDoubleTapAction.allCases.filter { $0 != .edit }.map { $0.rawValue }, current: { NagramSettings.shared.messageDoubleTapActionWithoutEditPermissionValue }, set: { NagramSettings.shared.messageDoubleTapActionWithoutEditPermission = $0 }),
+        ]),
+        NagramGroup(tab: .chat, headerKey: "Nagram.Section.Gesture", footerKey: "Nagram.Section.Gesture.Footer", rows: [
+            .toggle(titleKey: "Nagram.RecentChats", get: { NagramSettings.shared.recentChatsEnabled }, set: { NagramSettings.shared.recentChatsEnabled = $0 }),
             .choice(titleKey: "Nagram.ChatListSwipeAction", prefix: "Nagram.ChatListSwipeAction", options: ["both", "switch", "quick", "none"], current: { NagramSettings.shared.chatListSwipeActionMode.rawValue }, set: { NagramSettings.shared.chatListSwipeAction = $0 }),
             .toggle(titleKey: "Nagram.ShowArchiveInFolders", get: { NagramSettings.shared.showArchiveInFolders }, set: { NagramSettings.shared.showArchiveInFolders = $0 }),
             .toggle(titleKey: "Nagram.OpenArchiveOnPull", get: { NagramSettings.shared.openArchiveOnPull }, set: { NagramSettings.shared.openArchiveOnPull = $0 }),
@@ -555,7 +592,7 @@ private func nagramGroups(
         ]),
         // 其他
         // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
-        NagramGroup(tab: .other, headerKey: "Nagram.Tab.Other", footerKey: "Nagram.LocalPremium.Footer", rows: [
+        NagramGroup(tab: .other, headerKey: nil, footerKey: "Nagram.LocalPremium.Footer", rows: [
             .toggle(titleKey: "Nagram.LocalPremium", get: { NagramSettings.shared.localPremiumEnabled }, set: { NagramSettings.shared.localPremiumEnabled = $0 }),
         ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Experimental", footerKey: "Nagram.MediaMetadata.Footer", rows: [
@@ -569,7 +606,14 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.ShowDC", get: { NagramSettings.shared.showDC }, set: { NagramSettings.shared.showDC = $0 }),
             .toggle(titleKey: "Nagram.ShowRegDate", get: { NagramSettings.shared.showRegDate }, set: { NagramSettings.shared.showRegDate = $0 }),
             .navigation(titleKey: "Nagram.GroupProfileSettings", action: groupProfileSettingsAction),
-            .toggle(titleKey: "Nagram.HidePhoneInSettings", get: { NagramSettings.shared.hidePhoneInSettings }, set: { NagramSettings.shared.hidePhoneInSettings = $0 }),
+        ]),
+        // MARK: NEXTGRAM — Put activity controls first on the privacy page.
+        NagramGroup(tab: .other, headerKey: "Nagram.Section.GhostMode", footerKey: "Nagram.GhostMode.Footer", rows: [
+            .toggle(titleKey: "Nagram.GhostMode", get: { NagramSettings.shared.ghostModeEnabled }, set: { NagramSettings.shared.ghostModeEnabled = $0 }),
+            .toggle(titleKey: "Nagram.DisableReadReceipts", get: { NagramSettings.shared.disableReadReceipts }, set: { NagramSettings.shared.disableReadReceipts = $0 }),
+            .toggle(titleKey: "Nagram.DisableTypingStatus", get: { NagramSettings.shared.disableTypingStatus }, set: { NagramSettings.shared.disableTypingStatus = $0 }),
+            .toggle(titleKey: "Nagram.DisableOnlineStatus", get: { NagramSettings.shared.disableOnlineStatus }, set: { NagramSettings.shared.disableOnlineStatus = $0 }),
+            .toggle(titleKey: "Nagram.GhostScheduledSending", get: { NagramSettings.shared.ghostScheduledSending }, set: { NagramSettings.shared.ghostScheduledSending = $0 }),
         ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Calls", footerKey: nil, rows: [
             .toggle(titleKey: "Nagram.ConfirmCalls", get: { NagramSettings.shared.confirmCalls }, set: { NagramSettings.shared.confirmCalls = $0 }),
@@ -578,18 +622,12 @@ private func nagramGroups(
             .toggle(titleKey: "Nagram.ICloudSync", get: { NagramSettings.shared.iCloudSyncEnabled }, set: { NagramSettings.shared.iCloudSyncEnabled = $0 }),
         ]),
         NagramGroup(tab: .other, headerKey: "Nagram.Section.Privacy", footerKey: "Nagram.DisableFiltering.Footer", rows: [
+            .toggle(titleKey: "Nagram.HidePhoneInSettings", get: { NagramSettings.shared.hidePhoneInSettings }, set: { NagramSettings.shared.hidePhoneInSettings = $0 }),
             .toggleWithEnabled(titleKey: "Nagram.DisableFiltering", get: sensitiveContentEnabled, set: setSensitiveContentEnabled, enabled: sensitiveContentCanAdjust, enableInteractiveChanges: false),
             .toggle(titleKey: "Nagram.SkipSensitiveContentWarning", get: { NagramSettings.shared.skipSensitiveContentWarning }, set: { NagramSettings.shared.skipSensitiveContentWarning = $0 }),
         ]),
         // MARK: NEXTGRAM — Ayu feature controls in the native Nagram settings layout.
-        NagramGroup(tab: .other, headerKey: "Nagram.Section.GhostMode", footerKey: "Nagram.GhostMode.Footer", rows: [
-            .toggle(titleKey: "Nagram.GhostMode", get: { NagramSettings.shared.ghostModeEnabled }, set: { NagramSettings.shared.ghostModeEnabled = $0 }),
-            .toggle(titleKey: "Nagram.DisableReadReceipts", get: { NagramSettings.shared.disableReadReceipts }, set: { NagramSettings.shared.disableReadReceipts = $0 }),
-            .toggle(titleKey: "Nagram.DisableTypingStatus", get: { NagramSettings.shared.disableTypingStatus }, set: { NagramSettings.shared.disableTypingStatus = $0 }),
-            .toggle(titleKey: "Nagram.DisableOnlineStatus", get: { NagramSettings.shared.disableOnlineStatus }, set: { NagramSettings.shared.disableOnlineStatus = $0 }),
-            .toggle(titleKey: "Nagram.GhostScheduledSending", get: { NagramSettings.shared.ghostScheduledSending }, set: { NagramSettings.shared.ghostScheduledSending = $0 }),
-        ]),
-        NagramGroup(tab: .other, headerKey: nil, footerKey: "Nagram.ForceCopy.Footer", rows: [
+        NagramGroup(tab: .other, headerKey: "TDot.Settings.Section.SecretChats", footerKey: "Nagram.ForceCopy.Footer", rows: [
             .toggle(titleKey: "Nagram.AllowSecretChatScreenshots", get: { NagramSettings.shared.allowSecretChatScreenshots }, set: { NagramSettings.shared.allowSecretChatScreenshots = $0 }),
             .toggle(titleKey: "Nagram.ForceCopy", get: { NagramSettings.shared.forceCopyEnabled }, set: { NagramSettings.shared.forceCopyEnabled = $0 }),
         ]),
@@ -705,8 +743,13 @@ public func nagramSettingsSearchEntries(lang: String) -> [NagramSettingsSearchEn
             return nagramSettingsController(context: context)
         })
     ]
+    for category in TDotSettingsCategory.allCases {
+        entries.append(NagramSettingsSearchEntry(id: "nagram/category/\(category.key)", title: ngI18n(category.titleKey, lang), alternate: [ngI18n(category.summaryKey, lang)], breadcrumbs: [rootTitle], makeController: { context in
+            return nagramSettingsPageController(context: context, category: category)
+        }))
+    }
     for group in groups {
-        let tabTitle = ngI18n(group.tab.titleKey, lang)
+        let tabTitle = ngI18n(group.category.titleKey, lang)
         let headerTitle = group.headerKey.map { ngI18n($0, lang) }
         for row in group.rows where nagramRowIsVisible(row) {
             let titleKey = nagramRowTitleKey(row)
@@ -847,19 +890,20 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
         case let .header(_, section, text):
             return ItemListSectionHeaderItem(presentationData: presentationData, text: text, sectionId: section)
         case let .toggle(_, section, title, value, enabled, enableInteractiveChanges, index):
-            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, enableInteractiveChanges: enableInteractiveChanges, enabled: enabled, sectionId: section, style: .blocks, updated: { value in
+            return ItemListSwitchItem(presentationData: presentationData, systemStyle: .glass, title: title, value: value, enableInteractiveChanges: enableInteractiveChanges, enabled: enabled, maximumNumberOfLines: 0, sectionId: section, style: .blocks, updated: { value in
                 arguments.toggle(index, value)
             }, longTapAction: {
                 arguments.copyDeepLink(index)
             }, tag: self.tag)
         case let .disclosure(_, section, title, label, index):
-            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: title, label: label, sectionId: section, style: .blocks, action: {
+            let attributedTitle = NSAttributedString(string: title, font: Font.regular(presentationData.fontSize.itemListBaseFontSize), textColor: presentationData.theme.list.itemPrimaryTextColor)
+            return ItemListDisclosureItem(presentationData: presentationData, systemStyle: .glass, title: title, attributedTitle: attributedTitle, label: label, sectionId: section, style: .blocks, action: {
                 arguments.disclosureAction(index)
             }, longTapAction: {
                 arguments.copyDeepLink(index)
             }, tag: self.tag)
         case let .input(_, section, title, text, placeholder, isSecret, index):
-            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: text, placeholder: placeholder, type: isSecret ? .password : .regular(capitalization: false, autocorrection: false), clearType: .onFocus, tag: self.tag, sectionId: section, textUpdated: { updatedText in
+            return ItemListSingleLineInputItem(presentationData: presentationData, systemStyle: .glass, title: NSAttributedString(string: title, textColor: presentationData.theme.list.itemPrimaryTextColor), text: text, placeholder: placeholder, type: isSecret ? .password : .regular(capitalization: false, autocorrection: false), spacing: 12.0, clearType: .onFocus, tag: self.tag, sectionId: section, textUpdated: { updatedText in
                 arguments.inputUpdated(index, updatedText)
             }, action: {
             })
@@ -876,6 +920,14 @@ private enum NagramSettingsEntry: ItemListNodeEntry {
 }
 
 public func nagramSettingsController(context: AccountContext, deepLinkPath: String? = nil) -> ViewController {
+    // MARK: NEXTGRAM — Bare settings links open the hub; existing row links open their category.
+    if let request = parseNagramDeepLinkRequest(deepLinkPath), request.section != nil || request.row != nil {
+        return nagramSettingsPageController(context: context, deepLinkPath: deepLinkPath)
+    }
+    return tdotSettingsCategoriesController(context: context)
+}
+
+func nagramSettingsPageController(context: AccountContext, deepLinkPath: String? = nil, category: TDotSettingsCategory? = nil) -> ViewController {
     var currentShowCallsTab = CallListSettings.defaultSettings.showTab
     var currentContentSettingsConfiguration: ContentSettingsConfiguration?
     let contentSettingsConfigurationPromise = Promise<ContentSettingsConfiguration?>()
@@ -1021,7 +1073,18 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         return action
     }
 
-    let tabPromise = ValuePromise<Int32>(deepLinkTarget.tab.rawValue, ignoreRepeated: true)
+    let selectedCategory: TDotSettingsCategory
+    if let category {
+        selectedCategory = category
+    } else if let rowIndex = deepLinkTarget.rowIndex {
+        selectedCategory = groups.flatMap { group in group.rows.map { _ in group.category } }[rowIndex]
+    } else {
+        switch deepLinkTarget.tab {
+        case .general: selectedCategory = .appearance
+        case .chat: selectedCategory = .messages
+        case .other: selectedCategory = .privacy
+        }
+    }
 
     // 本地刷新计数:toggle/choice 改值后 bump() 触发重建。slider 不 bump(节点自显示)。
     let updatePromise = ValuePromise<Int32>(0, ignoreRepeated: false)
@@ -1140,7 +1203,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
 
     let signal = combineLatest(queue: .mainQueue(),
         context.sharedContext.presentationData,
-        tabPromise.get(),
         updatePromise.get(),
         contentSettingsConfigurationPromise.get(),
         context.sharedContext.accountManager.sharedData(keys: [ApplicationSpecificSharedDataKeys.callListSettings])
@@ -1149,7 +1211,7 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         }
     )
     |> deliverOnMainQueue
-    |> map { presentationData, selectedTab, _, contentSettingsConfiguration, showCallsTab -> (ItemListControllerState, (ItemListNodeState, Any)) in
+    |> map { presentationData, _, contentSettingsConfiguration, showCallsTab -> (ItemListControllerState, (ItemListNodeState, Any)) in
         currentShowCallsTab = showCallsTab
         currentContentSettingsConfiguration = contentSettingsConfiguration
         let lang = presentationData.strings.baseLanguageCode
@@ -1161,7 +1223,7 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
         var stableId: Int32 = 0
         var globalRowIndex = 0
         for (groupIndex, group) in groups.enumerated() {
-            let isCurrent = group.tab.rawValue == selectedTab
+            let isCurrent = group.category == selectedCategory
             let sectionId = Int32(groupIndex)
 
             let headerStableId = stableId
@@ -1211,8 +1273,7 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
             }
         }
 
-        let tabTitles = NagramTab.allCases.map { ngI18n($0.titleKey, lang) }
-        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .sectionControl(tabTitles, Int(selectedTab)), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text(ngI18n(selectedCategory.titleKey, lang)), leftNavigationButton: nil, rightNavigationButton: nil, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
         let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: entries, style: .blocks, ensureVisibleItemTag: deepLinkTarget.rowIndex.map { NagramSettingsRowTag(index: $0) }, initialScrollToItem: initialScrollToItem, animateChanges: false)
 
         return (controllerState, (listState, arguments))
@@ -1253,9 +1314,6 @@ public func nagramSettingsController(context: AccountContext, deepLinkPath: Stri
                 })
             }
         }
-    }
-    controller.titleControlValueChanged = { index in
-        tabPromise.set(Int32(index))
     }
     presentControllerImpl = { [weak controller] c, presentationArguments in
         controller?.present(c, in: .window(.root), with: presentationArguments)
