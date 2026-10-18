@@ -19,6 +19,9 @@ ROOTS = ("Nagram/", "Telegram/", "submodules/", "third-party/")
 GENERATED = {"versions.json", "README.md", "docs/upstream-sync.md"}
 MAX_CALLS = 18
 POLICY = """Maintain t. as the latest Nagram plus its existing Ayu overlay.
+Use three-way semantics: if only one side changed a value from BASE, keep that
+change. Adjacent independent edits must both survive even when diff3 groups them
+into one text conflict. An unchanged BASE value is not a competing new request.
 Preserve t. branding, environment-only identities, existing preference keys, all
 settings callbacks and links, and the native eight-category extra-settings hub.
 The eight-category hub is an explicit user override of upstream tab/group layout.
