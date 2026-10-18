@@ -36,6 +36,21 @@ class SyncTests(unittest.TestCase):
             merged = sync.merge("Nagram/test.swift", b"start\na\nend\n", b"start\nb\nend\n", b"start\nc\nend\n", reviewer)
         self.assertEqual(merged, b"start\noverlay + upstream\nend\n")
 
+    def test_settings_reorganization_gets_complete_file_context(self):
+        reviewer = sync.Reviewer()
+        with patch.object(reviewer, "ask", return_value={"decision": "merge", "content": "resolved\n"}) as ask:
+            merged = sync.merge("Nagram/SettingsUI/Example.swift", b"base\n", b"ours\n", b"upstream\n", reviewer)
+        self.assertEqual(merged, b"resolved\n")
+        self.assertTrue(ask.call_args.args[0].startswith("Resolve complete file"))
+        self.assertEqual(ask.call_args.args[1]["ours"], "ours\n")
+        self.assertIn("categoryHub", ask.call_args.args[1])
+
+    def test_review_includes_upstream_changes_even_if_merge_omitted_them(self):
+        reviewer = sync.Reviewer()
+        with patch.object(reviewer, "ask", return_value={"decision": "approve"}) as ask:
+            sync.review_changes({}, reviewer, {"Nagram/test.swift": "required upstream behavior"})
+        self.assertIn("required upstream behavior", ask.call_args.args[1]["diff"])
+
     def test_blocked_or_secret_model_output_is_not_applied(self):
         for result in ({"decision": "block"}, {"decision": "merge", "content": "APP_ID = 12345678"}):
             reviewer = sync.Reviewer()

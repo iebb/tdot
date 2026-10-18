@@ -95,9 +95,10 @@ class Reviewer:
             raise RuntimeError("Daily model request budget exhausted; manual review needed")
         content = json.dumps(payload, ensure_ascii=False)
         scan(content.encode())
-        if len(content) > 100_000:
+        if len(content) > 400_000:
             raise RuntimeError("Model context budget exceeded; manual review needed")
-        body = {"model": "openrouter/free", "temperature": 0, "max_tokens": 8192,
+        body = {"model": "openrouter/free", "temperature": 0,
+                "max_tokens": 32768 if task.startswith("Resolve complete file") else 8192,
                 "provider": {"max_price": {"prompt": 0, "completion": 0}, "require_parameters": True},
                 "response_format": {"type": "json_schema", "json_schema": {
                     "name": "merge_decision", "strict": True, "schema": {"type": "object",
@@ -153,6 +154,17 @@ def merge(path, base, ours, theirs, reviewer):
         result = subprocess.run(["diff3", "-m", *map(str, files)], capture_output=True, text=True)
     if result.returncode not in (0, 1):
         raise RuntimeError("Three-way merge failed")
+    if result.returncode == 1 and path.startswith("Nagram/SettingsUI/"):
+        # Settings tab/namespace changes cross hunk boundaries. Review the whole
+        # file so the model can reconcile declarations, callers and link aliases.
+        answer = reviewer.ask('Resolve complete file: use our eight-category UI as the foundation, integrate upstream functional changes and new link aliases, and preserve all existing preference callbacks. Return decision merge and the complete resolved file in content, or block with a reason. Annotate new downstream integration sites with // MARK: NEXTGRAM.',
+                              {"path": path, "ours": contents[0], "base": contents[1], "upstream": contents[2],
+                               "categoryHub": Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:4000]})
+        if answer.get("decision") != "merge" or not isinstance(answer.get("content"), str):
+            raise RuntimeError("Model requested whole-file settings review")
+        output = answer["content"].encode()
+        scan(output)
+        return output
     pattern = r"(?m)^<<<<<<< .*?\n(.*?)^\|\|\|\|\|\|\| .*?\n(.*?)^=======\n(.*?)^>>>>>>> .*?\n"
     def resolve(match):
         context = {"before": result.stdout[max(0, match.start()-2000):match.start()],
@@ -229,22 +241,24 @@ def validate_changes(changes):
             raise RuntimeError("A removed UID-based role list was reintroduced")
 
 
-def review_changes(changes, reviewer):
+def review_changes(changes, reviewer, upstream_deltas=None):
     chunks = []
-    for path, value in changes.items():
+    upstream_deltas = upstream_deltas or {}
+    for path in sorted(set(changes) | set(upstream_deltas)):
         if path in GENERATED:
             continue
         old = Path(path).read_bytes() if Path(path).is_file() else b""
+        value = changes.get(path, old)
         try:
             delta = "".join(difflib.unified_diff(old.decode().splitlines(True),
                            (value or b"").decode().splitlines(True), n=8))
         except UnicodeDecodeError:
             raise RuntimeError("Binary changes require manual review") from None
-        chunks.append("\nFILE: " + path + "\n" + delta)
+        chunks.append("\nFILE: " + path + "\nEXPECTED UPSTREAM DELTA:\n" + upstream_deltas.get(path, "") + "\nPROPOSED DOWNSTREAM DELTA:\n" + delta)
     # Review every line, batching files to stay within the free daily quota.
     delta = "".join(chunks)
     for start in range(0, len(delta), 50_000):
-        answer = reviewer.ask('Review these proposed source deltas against the policy. Return only {"decision":"approve"} or {"decision":"block"}.',
+        answer = reviewer.ask('Review proposed source deltas against the expected upstream changes and policy. Require all unrelated upstream behavior, preserve our explicit UI exception, and reject omitted functional changes. Return only {"decision":"approve"} or {"decision":"block"}.',
                               {"diff": delta[start:start + 50_000]})
         if answer.get("decision") != "approve":
             raise RuntimeError("Model requested manual source review")
@@ -276,6 +290,7 @@ def prepare(smoke=False):
     if comparison["status"] not in ("ahead", "identical") or len(comparison.get("files", [])) >= 300:
         raise RuntimeError("Upstream history diverged or compare is truncated; manual review needed")
     changes = {}
+    upstream_deltas = {}
     for entry in comparison["files"]:
         path = entry["filename"]
         # Upstream release tooling is independent of t.'s private release setup.
@@ -289,6 +304,10 @@ def prepare(smoke=False):
         for data in (base, theirs, ours):
             if data is not None:
                 scan(data)
+        try:
+            upstream_deltas[path] = "".join(difflib.unified_diff((base or b"").decode().splitlines(True), (theirs or b"").decode().splitlines(True), n=5))
+        except UnicodeDecodeError:
+            raise RuntimeError("Binary upstream changes need manual review") from None
         value = merge(path, base, ours, theirs, reviewer)
         if path.endswith("/NagramLocalizable.strings"):
             value = retain_localization_keys(ours, value)
@@ -303,7 +322,7 @@ def prepare(smoke=False):
             raise RuntimeError("Source attribution needs manual review")
         changes[path] = original.replace(before, after, 1).encode()
     validate_changes(changes)
-    review_changes(changes, reviewer)
+    review_changes(changes, reviewer, upstream_deltas)
     proposal = {"parent": head, "upstream": latest,
                 "changes": {path: None if data is None else base64.b64encode(data).decode() for path, data in changes.items()}}
     Path("sync-proposal.json").write_text(json.dumps(proposal))
