@@ -46,6 +46,12 @@ class SyncTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             sync.merge("Nagram/test.swift", b"a\n", b"b\n", None, sync.Reviewer())
 
+    def test_layout_sync_keeps_localization_used_by_downstream(self):
+        merged = sync.retain_localization_keys(b'"Legacy" = "Old";\n"Shared" = "Before";\n', b'"Shared" = "After";\n"Added" = "New";\n')
+        self.assertIn(b'"Legacy" = "Old";', merged)
+        self.assertIn(b'"Shared" = "After";', merged)
+        self.assertNotIn(b'"Shared" = "Before";', merged)
+
     def test_free_request_has_no_paid_fallback(self):
         response = {"choices": [{"finish_reason": "stop", "message": {"content": '{"decision":"approve"}'}}]}
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": "private-test"}), patch.object(sync.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(response).encode())) as call:

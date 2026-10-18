@@ -21,6 +21,9 @@ MAX_CALLS = 18
 POLICY = """Maintain t. as the latest Nagram plus its existing Ayu overlay.
 Preserve t. branding, environment-only identities, existing preference keys, all
 settings callbacks and links, and the native eight-category extra-settings hub.
+The eight-category hub is an explicit user override of upstream tab/group layout.
+For layout-only conflicts, keep our layout and integrate upstream semantic changes
+and new link aliases into it. Keeping our layout is correct, not a missed sync.
 Preserve Ghost Mode, local edited/deleted history, retained loaded chats, optional
 secret screenshots/manual TTL expiration, filters, markers and local Premium UI.
 AyuSync is deferred. Keep normal Nagram navigation, startup and notifications.
@@ -101,7 +104,7 @@ class Reviewer:
                     "properties": {"decision": {"type": "string", "enum": ["merge", "approve", "block"]},
                                    "content": {"type": "string"}},
                     "required": ["decision", "content"], "additionalProperties": False}}},
-                "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for review decisions."},
+                "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for approval, or a brief reason for blocking."},
                              {"role": "user", "content": content}]}
         request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
             data=json.dumps(body).encode(), headers={"Content-Type": "application/json",
@@ -150,16 +153,33 @@ def merge(path, base, ours, theirs, reviewer):
         raise RuntimeError("Three-way merge failed")
     pattern = r"(?m)^<<<<<<< .*?\n(.*?)^\|\|\|\|\|\|\| .*?\n(.*?)^=======\n(.*?)^>>>>>>> .*?\n"
     def resolve(match):
+        context = {"before": result.stdout[max(0, match.start()-2000):match.start()],
+                   "after": result.stdout[match.end():match.end()+2000]}
+        if path.startswith("Nagram/SettingsUI/"):
+            context["currentDeclarations"] = contents[0][:4000]
+            context["categoryHub"] = Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:2000]
         answer = reviewer.ask('Resolve only this conflict. Return {"decision":"merge","content":"complete resolved hunk"} or {"decision":"block"}.',
-                              {"path": path, "ours": match[1], "base": match[2], "upstream": match[3]})
+                              {"path": path, "context": context, "ours": match[1], "base": match[2], "upstream": match[3]})
         if answer.get("decision") != "merge" or not isinstance(answer.get("content"), str):
-            raise RuntimeError("Model requested manual conflict review")
+            raise RuntimeError("Model requested manual conflict review in " + path)
         resolved = answer["content"]
         scan(resolved.encode())
         return resolved if resolved.endswith("\n") else resolved + "\n"
     output = re.sub(pattern, resolve, result.stdout, flags=re.DOTALL)
     scan(output.encode())
     return output.encode()
+
+
+def retain_localization_keys(ours, merged):
+    """Upstream layout removals must not strand t.'s existing settings labels."""
+    if ours is None or merged is None:
+        return merged
+    key = re.compile(r'^"([^"\n]+)"\s*=', re.M)
+    existing = set(key.findall(merged.decode()))
+    missing = [line for line in ours.decode().splitlines() if key.match(line) and key.match(line)[1] not in existing]
+    if missing:
+        return merged.rstrip() + b"\n\n// MARK: NEXTGRAM - labels retained for t. settings and legacy links.\n" + ("\n".join(missing) + "\n").encode()
+    return merged
 
 
 def validate_changes(changes):
@@ -264,6 +284,8 @@ def prepare(smoke=False):
             if data is not None:
                 scan(data)
         value = merge(path, base, ours, theirs, reviewer)
+        if path.endswith("/NagramLocalizable.strings"):
+            value = retain_localization_keys(ours, value)
         if value != ours:
             changes[path] = value
     versions = json.loads(Path("versions.json").read_text())
