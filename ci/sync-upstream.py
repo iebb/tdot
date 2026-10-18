@@ -95,9 +95,13 @@ class Reviewer:
         if len(content) > 100_000:
             raise RuntimeError("Model context budget exceeded; manual review needed")
         body = {"model": "openrouter/free", "temperature": 0, "max_tokens": 8192,
-                "provider": {"max_price": {"prompt": 0, "completion": 0}},
-                "response_format": {"type": "json_object"},
-                "messages": [{"role": "system", "content": POLICY + "\n" + task},
+                "provider": {"max_price": {"prompt": 0, "completion": 0}, "require_parameters": True},
+                "response_format": {"type": "json_schema", "json_schema": {
+                    "name": "merge_decision", "strict": True, "schema": {"type": "object",
+                    "properties": {"decision": {"type": "string", "enum": ["merge", "approve", "block"]},
+                                   "content": {"type": "string"}},
+                    "required": ["decision", "content"], "additionalProperties": False}}},
+                "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for review decisions."},
                              {"role": "user", "content": content}]}
         request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
             data=json.dumps(body).encode(), headers={"Content-Type": "application/json",
@@ -114,7 +118,10 @@ class Reviewer:
         if choice.get("finish_reason") != "stop":
             raise RuntimeError("Incomplete model response; refusing merge")
         try:
-            answer = json.loads(choice["message"]["content"])
+            raw = choice["message"]["content"].strip()
+            if raw.startswith("```json\n") and raw.endswith("```"):
+                raw = raw[8:-3].strip()
+            answer = json.loads(raw)
         except (ValueError, KeyError, TypeError):
             raise RuntimeError("Model did not return valid JSON; refusing merge") from None
         if not isinstance(answer, dict):
