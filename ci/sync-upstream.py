@@ -382,13 +382,15 @@ def publish():
 def source_builds(pin):
     runs = api(REPO, "/actions/workflows/build.yml/runs?branch=master&per_page=30")["workflow_runs"]
     for run in runs:
+        if "[simulator]" in run.get("display_title", ""):
+            continue
         source = blob(REPO, run["head_sha"], "versions.json")
         if source and json.loads(source).get("nagram_revision") == pin:
             if run["status"] == "completed":
                 jobs = api(REPO, f"/actions/runs/{run['id']}/jobs?per_page=100")["jobs"]
-                uploads = [step for job in jobs for step in job.get("steps", [])
-                           if step["name"] == "Upload signed IPA to App Store Connect"]
-                if uploads and all(step.get("conclusion") == "skipped" for step in uploads):
+                simulator_checks = [step for job in jobs for step in job.get("steps", [])
+                                    if step["name"] == "Check whether a simulator artifact can stay private"]
+                if any(step.get("conclusion") == "success" for step in simulator_checks):
                     continue
             yield run
 

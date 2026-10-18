@@ -1,4 +1,5 @@
 name: Build t. and upload to TestFlight
+run-name: Build t. [${{ inputs.distribution || 'testflight' }}]
 on:
   push:
     branches: [master]

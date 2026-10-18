@@ -116,6 +116,19 @@ class SyncTests(unittest.TestCase):
                 sync.publish()
         self.assertEqual(api.call_count, 1)
 
+    def test_failed_pre_upload_release_is_preserved_for_audit(self):
+        run = {"id": 12, "head_sha": "source", "status": "completed", "conclusion": "failure"}
+        responses = [{"workflow_runs": [run]}, {"jobs": [{"steps": [
+            {"name": "Upload signed IPA to App Store Connect", "conclusion": "skipped"},
+            {"name": "Check whether a simulator artifact can stay private", "conclusion": "skipped"}]}]}]
+        with patch.object(sync, "api", side_effect=responses), patch.object(sync, "blob", return_value=b'{"nagram_revision":"pin"}'):
+            self.assertEqual(list(sync.source_builds("pin")), [run])
+
+    def test_simulator_run_does_not_count_as_signed_release(self):
+        run = {"display_title": "Build t. [simulator]"}
+        with patch.object(sync, "api", return_value={"workflow_runs": [run]}):
+            self.assertEqual(list(sync.source_builds("pin")), [])
+
 
 if __name__ == "__main__":
     unittest.main()
