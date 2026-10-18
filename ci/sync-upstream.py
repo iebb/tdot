@@ -97,14 +97,18 @@ class Reviewer:
         scan(content.encode())
         if len(content) > 400_000:
             raise RuntimeError("Model context budget exceeded; manual review needed")
-        body = {"model": "openrouter/free", "temperature": 0,
-                "max_tokens": 32768 if task.startswith("Resolve complete file") else 8192,
+        properties = {"decision": {"type": "string", "enum": ["merge", "block"] if task.startswith("Resolve") else ["approve", "block"]},
+                      "content": {"type": "string"}}
+        if task.startswith("Resolve complete file"):
+            properties["edits"] = {"type": "array", "items": {"type": "object", "properties": {
+                "before": {"type": "string"}, "after": {"type": "string"}},
+                "required": ["before", "after"], "additionalProperties": False}}
+        body = {"model": "openrouter/free", "temperature": 0, "max_tokens": 8192,
+                "reasoning": {"effort": "low", "exclude": True},
                 "provider": {"max_price": {"prompt": 0, "completion": 0}, "require_parameters": True},
                 "response_format": {"type": "json_schema", "json_schema": {
                     "name": "merge_decision", "strict": True, "schema": {"type": "object",
-                    "properties": {"decision": {"type": "string", "enum": ["merge", "block"] if task.startswith("Resolve") else ["approve", "block"]},
-                                   "content": {"type": "string"}},
-                    "required": ["decision", "content"], "additionalProperties": False}}},
+                    "properties": properties, "required": list(properties), "additionalProperties": False}}},
                 "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for approval, or a brief reason for blocking."},
                              {"role": "user", "content": content}]}
         request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
@@ -157,12 +161,20 @@ def merge(path, base, ours, theirs, reviewer):
     if result.returncode == 1 and path.startswith("Nagram/SettingsUI/"):
         # Settings tab/namespace changes cross hunk boundaries. Review the whole
         # file so the model can reconcile declarations, callers and link aliases.
-        answer = reviewer.ask('Resolve complete file: use our eight-category UI as the foundation, integrate upstream functional changes and new link aliases, and preserve all existing preference callbacks. Return decision merge and the complete resolved file in content, or block with a reason. Annotate new downstream integration sites with // MARK: NEXTGRAM.',
+        answer = reviewer.ask('Resolve complete file: use OURS as the foundation, integrate upstream functional changes and new link aliases, and preserve our eight-category layout and all existing callbacks. Return decision merge with minimal exact before/after textual edits to OURS in the edits array; set content empty. Each before must occur exactly once. Do not copy the entire file. An empty edits array is allowed only when upstream changes are entirely covered by our explicit UI exception. Or return block, a reason in content, and empty edits. Annotate new downstream integration sites with // MARK: NEXTGRAM.',
                               {"path": path, "ours": contents[0], "base": contents[1], "upstream": contents[2],
                                "categoryHub": Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:4000]})
-        if answer.get("decision") != "merge" or not isinstance(answer.get("content"), str):
+        if answer.get("decision") != "merge" or not isinstance(answer.get("edits"), list):
             raise RuntimeError("Model requested whole-file settings review")
-        output = answer["content"].encode()
+        if len(answer["edits"]) > 30:
+            raise RuntimeError("Too many settings edits; manual review needed")
+        output = contents[0]
+        for edit in answer["edits"]:
+            before, after = edit.get("before"), edit.get("after")
+            if not isinstance(before, str) or not before or not isinstance(after, str) or output.count(before) != 1:
+                raise RuntimeError("Ambiguous model edit; refusing settings merge")
+            output = output.replace(before, after, 1)
+        output = output.encode()
         scan(output)
         return output
     pattern = r"(?m)^<<<<<<< .*?\n(.*?)^\|\|\|\|\|\|\| .*?\n(.*?)^=======\n(.*?)^>>>>>>> .*?\n"
@@ -232,6 +244,10 @@ def validate_changes(changes):
             normalized = re.sub(r'\s+', '', new)
             if any(re.sub(r'\s+', '', row) not in normalized for row in old_rows):
                 raise RuntimeError("An existing settings row/callback changed; manual review needed")
+            for integration in ("return tdotSettingsCategoriesController(context: context)",
+                                "TDotSettingsCategory.allCases", "group.category == selectedCategory"):
+                if integration in old and re.sub(r'\s+', '', integration) not in normalized:
+                    raise RuntimeError("The category hub, search or focused-page routing was removed")
         for token in ("allowSecretChatScreenshots", "TDotSettingsCategory", "AyuSync"):
             if token in old and token not in new:
                 raise RuntimeError("A protected downstream integration was removed")
@@ -363,13 +379,51 @@ def publish():
     print("Published single-parent snapshot on master and dispatched signed CI.")
 
 
+def source_builds(pin):
+    runs = api(REPO, "/actions/workflows/build.yml/runs?branch=master&per_page=30")["workflow_runs"]
+    for run in runs:
+        source = blob(REPO, run["head_sha"], "versions.json")
+        if source and json.loads(source).get("nagram_revision") == pin:
+            if run["status"] == "completed":
+                jobs = api(REPO, f"/actions/runs/{run['id']}/jobs?per_page=100")["jobs"]
+                uploads = [step for job in jobs for step in job.get("steps", [])
+                           if step["name"] == "Upload signed IPA to App Store Connect"]
+                if uploads and all(step.get("conclusion") == "skipped" for step in uploads):
+                    continue
+            yield run
+
+
+def resume_build():
+    """Reconcile a lost dispatch response before ever creating another build."""
+    head = api(REPO, "/commits/master")["sha"]
+    if head != os.environ.get("GITHUB_SHA"):
+        raise RuntimeError("Master moved; defer release reconciliation to the next run")
+    pin = json.loads(Path("versions.json").read_text())["nagram_revision"]
+    if api(UPSTREAM, "/commits/HEAD")["sha"] != pin:
+        return
+    if next(source_builds(pin), None):
+        print("This source revision already has signed CI; preserving its upload or failure for audit.")
+        return
+    runs = api(REPO, "/actions/workflows/build.yml/runs?per_page=30")["workflow_runs"]
+    if any(run["status"] != "completed" for run in runs):
+        return
+    api(REPO, "/actions/workflows/build.yml/dispatches", {"ref": "master", "inputs": {"distribution": "testflight"}})
+    print("Recovered the missing signed-build dispatch; no existing upload was repeated.")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--resume-build", action="store_true")
     args = parser.parse_args()
     try:
-        publish() if args.publish else prepare(args.smoke)
+        if args.publish:
+            publish()
+        elif args.resume_build:
+            resume_build()
+        else:
+            prepare(args.smoke)
     except (RuntimeError, KeyError, ValueError, OSError) as error:
         # Never echo model text, API response bodies or credentials into logs.
         print("Sync stopped: " + (str(error) if isinstance(error, RuntimeError) else type(error).__name__))

@@ -46,7 +46,7 @@ jobs:
           if-no-files-found: error
   publish:
     needs: prepare
-    if: needs.prepare.outputs.changed == 'true' && inputs.dry_run != true
+    if: inputs.dry_run != true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -57,12 +57,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v4
+        if: needs.prepare.outputs.changed == 'true'
         with:
           name: reviewed-public-source
       - name: Publish a snapshot and start the signed build
         env:
           GH_TOKEN: ${{ github.token }}
-        run: python3 ci/sync-upstream.py --publish
+        run: python3 ci/sync-upstream.py ${{ needs.prepare.outputs.changed == 'true' && '--publish' || '--resume-build' }}
   testflight:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -89,6 +90,11 @@ jobs:
           python3 -m pip install playwright
           python3 -m playwright install --with-deps chromium
           python3 ci/check-testflight-page.py
+      - name: Reconcile the exact signed release with CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_NUMBER_OFFSET: ${{ secrets.BUILD_NUMBER_OFFSET }}
+        run: python3 ci/check-release-ci.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:

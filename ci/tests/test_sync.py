@@ -38,12 +38,17 @@ class SyncTests(unittest.TestCase):
 
     def test_settings_reorganization_gets_complete_file_context(self):
         reviewer = sync.Reviewer()
-        with patch.object(reviewer, "ask", return_value={"decision": "merge", "content": "resolved\n"}) as ask:
+        with patch.object(reviewer, "ask", return_value={"decision": "merge", "content": "", "edits": [{"before": "ours\n", "after": "resolved\n"}]}) as ask:
             merged = sync.merge("Nagram/SettingsUI/Example.swift", b"base\n", b"ours\n", b"upstream\n", reviewer)
         self.assertEqual(merged, b"resolved\n")
         self.assertTrue(ask.call_args.args[0].startswith("Resolve complete file"))
         self.assertEqual(ask.call_args.args[1]["ours"], "ours\n")
         self.assertIn("categoryHub", ask.call_args.args[1])
+
+    def test_ambiguous_full_file_edit_fails_closed(self):
+        reviewer = sync.Reviewer()
+        with patch.object(reviewer, "ask", return_value={"decision": "merge", "edits": [{"before": "ours", "after": "resolved"}]}), self.assertRaises(RuntimeError):
+            sync.merge("Nagram/SettingsUI/Example.swift", b"base\n", b"ours\nours\n", b"upstream\n", reviewer)
 
     def test_review_includes_upstream_changes_even_if_merge_omitted_them(self):
         reviewer = sync.Reviewer()
