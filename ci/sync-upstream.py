@@ -400,6 +400,26 @@ def publish():
     print("Published single-parent snapshot on master and dispatched signed CI.")
 
 
+def apply_proposal():
+    proposal = json.loads(Path("sync-proposal.json").read_text())
+    if proposal["parent"] != os.environ.get("GITHUB_SHA"):
+        raise RuntimeError("Validation checkout does not match the reviewed source")
+    changes = {path: None if value is None else base64.b64decode(value, validate=True)
+               for path, value in proposal["changes"].items()}
+    validate_changes(changes)
+    root = Path.cwd().resolve()
+    for path, data in changes.items():
+        target = Path(path)
+        if target.is_symlink() or not target.resolve().is_relative_to(root):
+            raise RuntimeError("Proposal path escapes the validation workspace")
+        if data is None:
+            target.unlink()
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+    print("Reviewed source applied to the ephemeral full-app validation checkout.")
+
+
 def source_builds(pin):
     runs = api(REPO, "/actions/workflows/build.yml/runs?branch=master&per_page=30")["workflow_runs"]
     for run in runs:
@@ -439,10 +459,13 @@ if __name__ == "__main__":
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--resume-build", action="store_true")
+    parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     try:
         if args.publish:
             publish()
+        elif args.apply:
+            apply_proposal()
         elif args.resume_build:
             resume_build()
         else:

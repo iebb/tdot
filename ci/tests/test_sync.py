@@ -128,6 +128,11 @@ class SyncTests(unittest.TestCase):
                 sync.publish()
         self.assertEqual(api.call_count, 1)
 
+    def test_candidate_cannot_apply_to_a_different_checkout(self):
+        proposal = {"parent": "reviewed-source", "changes": {"Nagram/test.swift": "YQo="}}
+        with patch.object(Path, "read_text", return_value=json.dumps(proposal)), patch.dict("os.environ", {"GITHUB_SHA": "different-source"}), self.assertRaises(RuntimeError):
+            sync.apply_proposal()
+
     def test_failed_pre_upload_release_is_preserved_for_audit(self):
         run = {"id": 12, "head_sha": "source", "status": "completed", "conclusion": "failure"}
         responses = [{"workflow_runs": [run]}, {"jobs": [{"steps": [

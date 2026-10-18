@@ -44,9 +44,88 @@ jobs:
           path: sync-proposal.json
           retention-days: 1
           if-no-files-found: error
-  publish:
+  validate:
     needs: prepare
-    if: inputs.dry_run != true
+    if: needs.prepare.outputs.changed == 'true'
+    runs-on: xcode-27
+    timeout-minutes: 180
+    env:
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_HASH: ${{ secrets.APP_HASH }}
+      BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+      TEAM_ID: ${{ secrets.TEAM_ID }}
+      APP_GROUP_ID: ${{ secrets.APP_GROUP_ID }}
+      APP_URL_SCHEME: ${{ secrets.APP_URL_SCHEME }}
+      ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+      ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      CI_CACHE_KEY: ${{ secrets.CI_CACHE_KEY }}
+      DISTRIBUTION: testflight
+      BUILD_NUMBER: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: reviewed-public-source
+      - name: Apply reviewed candidate without committing
+        run: python3 ci/sync-upstream.py --apply
+      - name: Select Xcode and install Metal
+        run: |
+          set -euo pipefail
+          version="$(python3 -c 'import json; print(json.load(open("versions.json"))["xcode"])')"
+          if [[ -d "/Applications/Xcode_${version}.app" ]]; then
+            sudo xcode-select -s "/Applications/Xcode_${version}.app/Contents/Developer"
+          fi
+          xcodebuild -version
+          xcodebuild -downloadComponent MetalToolchain
+      - name: Check candidate source revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/check-nagram-upstream.py
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          key: tdot-encrypted-bazel-testflight-${{ hashFiles('versions.json', 'MODULE.bazel.lock') }}-${{ github.run_id }}-validated
+          restore-keys: tdot-encrypted-bazel-testflight-
+      - name: Restore authenticated compiler cache
+        if: steps.cache.outputs.cache-matched-key != ''
+        run: bash ci/bazel-cache.sh restore
+      - name: Import complete distribution signing
+        env:
+          CERTIFICATE_P12: ${{ secrets.IOS_SIGNING_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_SIGNING_CERTIFICATE_PASSWORD }}
+          PROFILES_TAR_GZ: ${{ secrets.IOS_PROVISIONING_PROFILES_TAR_GZ }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: bash ci/import-signing.sh
+      - name: Full signed app and all six extensions
+        run: bash ci/build.sh
+      - name: Verify candidate app and extension signing
+        run: python3 ci/verify-ipa.py build/artifacts/tdot.ipa
+      - name: Encrypt candidate compiler cache
+        if: always()
+        id: encrypt
+        run: bash ci/bazel-cache.sh save
+      - uses: actions/cache/save@v4
+        if: always() && steps.encrypt.outputs.ready == 'true'
+        with:
+          path: ${{ runner.temp }}/tdot-encrypted-cache
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+      - name: Remove temporary signing material
+        if: always()
+        run: |
+          if [[ -n "${SIGNING_KEYCHAIN:-}" ]]; then
+            security delete-keychain "$SIGNING_KEYCHAIN" || true
+          fi
+          rm -rf build-input/codesigning "$RUNNER_TEMP/tdot-signing" "$RUNNER_TEMP/tdot-private-keys"
+  publish:
+    needs: [prepare, validate]
+    if: always() && needs.prepare.result == 'success' && (needs.prepare.outputs.changed != 'true' || needs.validate.result == 'success') && inputs.dry_run != true
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
