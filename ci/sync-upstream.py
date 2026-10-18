@@ -18,6 +18,7 @@ REPO = "iebb/tdot"
 ROOTS = ("Nagram/", "Telegram/", "submodules/", "third-party/")
 GENERATED = {"versions.json", "README.md", "docs/upstream-sync.md"}
 MAX_CALLS = 18
+FREE_MODELS = ["poolside/laguna-s-2.1:free", "nvidia/nemotron-3-ultra-550b-a55b:free", "cohere/north-mini-code:free"]
 POLICY = """Maintain t. as the latest Nagram plus its existing Ayu overlay.
 Use three-way semantics: if only one side changed a value from BASE, keep that
 change. Adjacent independent edits must both survive even when diff3 groups them
@@ -106,12 +107,18 @@ class Reviewer:
             properties["edits"] = {"type": "array", "items": {"type": "object", "properties": {
                 "before": {"type": "string"}, "after": {"type": "string"}},
                 "required": ["before", "after"], "additionalProperties": False}}
-        body = {"model": "openrouter/free", "temperature": 0, "max_tokens": 8192,
+        if not all(model.endswith(":free") for model in FREE_MODELS):
+            raise RuntimeError("Paid model selection is forbidden")
+        schema = {"type": "object", "properties": properties,
+                  "required": list(properties), "additionalProperties": False}
+        body = {"models": FREE_MODELS, "temperature": 0, "max_tokens": 8192,
                 "reasoning": {"effort": "low", "exclude": True},
                 "provider": {"max_price": {"prompt": 0, "completion": 0}, "require_parameters": True},
-                "response_format": {"type": "json_schema", "json_schema": {
-                    "name": "merge_decision", "strict": True, "schema": {"type": "object",
-                    "properties": properties, "required": list(properties), "additionalProperties": False}}},
+                # Coding models commonly support tool schemas but not response_format.
+                # This tool only returns JSON data; no model tool is ever executed.
+                "tools": [{"type": "function", "function": {"name": "submit_merge_decision",
+                           "description": "Return the source merge or review decision", "parameters": schema}}],
+                "tool_choice": {"type": "function", "function": {"name": "submit_merge_decision"}},
                 "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for approval, or a brief reason for blocking."},
                              {"role": "user", "content": content}]}
         request = urllib.request.Request("https://openrouter.ai/api/v1/chat/completions",
@@ -126,12 +133,19 @@ class Reviewer:
         except (OSError, ValueError):
             raise RuntimeError("Free model unavailable or rate limited; no paid fallback, retry next run") from None
         choice = result.get("choices", [{}])[0]
-        if choice.get("finish_reason") != "stop":
+        if choice.get("finish_reason") not in ("stop", "tool_calls"):
             raise RuntimeError("Incomplete model response; refusing merge")
-        if not isinstance(choice.get("message", {}).get("content"), str):
+        calls = choice.get("message", {}).get("tool_calls", [])
+        if calls:
+            if len(calls) != 1 or calls[0].get("function", {}).get("name") != "submit_merge_decision":
+                raise RuntimeError("Unexpected model tool request; no tool was executed")
+            raw = calls[0]["function"].get("arguments")
+        else:
+            raw = choice.get("message", {}).get("content")
+        if not isinstance(raw, str):
             raise RuntimeError("Free model returned no decision content")
         try:
-            raw = choice["message"]["content"].strip()
+            raw = raw.strip()
             if raw.startswith("```json\n") and raw.endswith("```"):
                 raw = raw[8:-3].strip()
             answer = json.loads(raw)
@@ -168,6 +182,10 @@ def merge(path, base, ours, theirs, reviewer):
                               {"path": path, "ours": contents[0], "base": contents[1], "upstream": contents[2],
                                "categoryHub": Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:4000]})
         if answer.get("decision") != "merge" or not isinstance(answer.get("edits"), list):
+            reason = answer.get("content", "")
+            if isinstance(reason, str):
+                scan(reason.encode())
+                print(json.dumps({"blockedPath": path, "modelReason": reason[:500]}, ensure_ascii=True))
             raise RuntimeError("Model requested whole-file settings review")
         if len(answer["edits"]) > 30:
             raise RuntimeError("Too many settings edits; manual review needed")

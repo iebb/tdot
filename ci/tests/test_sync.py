@@ -77,9 +77,21 @@ class SyncTests(unittest.TestCase):
         with patch.dict("os.environ", {"OPENROUTER_API_KEY": "private-test"}), patch.object(sync.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(response).encode())) as call:
             self.assertEqual(sync.Reviewer().ask("Review", {"source": "public"})["decision"], "approve")
         body = json.loads(call.call_args.args[0].data)
-        self.assertEqual(body["model"], "openrouter/free")
+        self.assertTrue(all(model.endswith(":free") for model in body["models"]))
         self.assertEqual(body["provider"]["max_price"], {"prompt": 0, "completion": 0})
-        self.assertNotIn("models", body)
+        self.assertEqual(body["tool_choice"]["function"]["name"], "submit_merge_decision")
+
+    def test_forced_tool_is_parsed_as_data_without_execution(self):
+        response = {"choices": [{"finish_reason": "tool_calls", "message": {"tool_calls": [
+            {"function": {"name": "submit_merge_decision", "arguments": '{"decision":"approve","content":""}'}}]}}]}
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "private-test"}), patch.object(sync.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(response).encode())):
+            self.assertEqual(sync.Reviewer().ask("Review", {})["decision"], "approve")
+
+    def test_unexpected_model_tool_is_rejected(self):
+        response = {"choices": [{"finish_reason": "tool_calls", "message": {"tool_calls": [
+            {"function": {"name": "run_command", "arguments": '{}'}}]}}]}
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "private-test"}), patch.object(sync.urllib.request, "urlopen", return_value=io.BytesIO(json.dumps(response).encode())), self.assertRaises(RuntimeError):
+            sync.Reviewer().ask("Review", {})
 
     def test_truncated_model_output_fails_closed(self):
         response = {"choices": [{"finish_reason": "length", "message": {"content": '{"decision":"approve"}'}}]}
