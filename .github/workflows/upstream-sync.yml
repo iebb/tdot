@@ -90,6 +90,7 @@ jobs:
           python3 -m playwright install --with-deps chromium
           python3 ci/check-testflight-page.py
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: testflight-publication
           path: build/artifacts/testflight-publication.json

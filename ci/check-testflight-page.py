@@ -10,7 +10,8 @@ if not path.exists():
 state = json.loads(path.read_text())
 with sync_playwright() as p:
     browser = p.chromium.launch()
-    page = browser.new_page(locale="en-US")
+    # Apple hides enrollment controls from unsupported Linux desktop clients.
+    page = browser.new_page(**p.devices["iPhone 13"], locale="en-US")
     page.goto(state["publicLink"], wait_until="domcontentloaded", timeout=60000)
     page.get_by_role("link", name="View in TestFlight", exact=True).wait_for(timeout=30000)
     text = page.locator("body").inner_text()
@@ -19,5 +20,6 @@ with sync_playwright() as p:
         raise RuntimeError("Public TestFlight page is not accepting testers")
     browser.close()
 state["renderedPublicJoinPageAcceptsTesters"] = True
+state["publicationComplete"] = state["audiencesActive"]
 path.write_text(json.dumps(state, indent=2) + "\n")
 print("Rendered public TestFlight join page accepts testers.")

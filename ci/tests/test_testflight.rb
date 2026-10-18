@@ -54,7 +54,7 @@ class PublicationTests < Minitest::Test
   end
   def test_approved_both_audiences_is_complete
     client=PublicationClient.new(review:'APPROVED')
-    run_publication(client) { |state| assert state['publicationComplete']; assert state['bothGroupsAttached'] }
+    run_publication(client) { |state| assert state['audiencesActive']; refute state['publicationComplete']; assert state['bothGroupsAttached'] }
     assert_empty client.writes
   end
   def test_rejected_review_fails_without_resubmission

@@ -77,7 +77,8 @@ if store.first && store.first.dig('attributes','appStoreState')=='PREPARE_FOR_SU
   raise 'Store build attachment did not persist' unless c.request(:get,"/appStoreVersions/#{id}/build")['data']['id']==b['id']
 end
 summary={app:'t.',version:version,build:attributes['version'],processing:attributes['processingState'],audience:attributes['buildAudienceType'],internal:detail['internalBuildState'],external:detail['externalBuildState'],betaReviewState:review&.dig('attributes','betaReviewState'),bothGroupsAttached:true,publicLink:link,autoPublishAfterApproval:detail['autoNotifyEnabled'],verifiedAt:Time.now.utc.iso8601}
-summary[:publicationComplete]=summary[:internal]=='IN_BETA_TESTING' && summary[:external]=='IN_BETA_TESTING' && summary[:betaReviewState]=='APPROVED'
+summary[:audiencesActive]=summary[:internal]=='IN_BETA_TESTING' && summary[:external]=='IN_BETA_TESTING' && summary[:betaReviewState]=='APPROVED'
+summary[:publicationComplete]=false # The rendered public-page check completes verification.
 FileUtils.mkdir_p('build/artifacts')
 File.write('build/artifacts/testflight-publication.json',JSON.pretty_generate(summary)+"\n")
 puts JSON.pretty_generate(summary)
