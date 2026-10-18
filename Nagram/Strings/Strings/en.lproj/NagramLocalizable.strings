@@ -618,3 +618,12 @@ With iCloud Keychain sync on, backups follow your other devices and appear on th
 "TDot.Settings.Section.Folders" = "Folders";
 "TDot.Settings.Section.MessageGestures" = "Message Gestures";
 "TDot.Settings.Markers.Footer" = "Leave fields empty to use the defaults.";
+"Nagram.SearchLink.Header" = "Link";
+"Nagram.SearchLink.Open" = "Open Link";
+"Nagram.SearchLink.OpenMessage" = "Go to Message";
+"Nagram.SearchLink.OpenInvite" = "Open Invite Link";
+"Nagram.Section.OneHanded" = "One-Handed Mode";
+"Nagram.Section.OneHanded.Footer" = "Keep searching within reach of your thumb: results start at the bottom of the screen next to the search field, and scrolling up shows more. Search results in the chat list only change when the search bar is in the bottom bar.";
+"Nagram.OneHanded.GlobalSearchResults" = "Search Results from the Bottom";
+"Nagram.OneHanded.ChatSearchResults" = "Chat Search Results from the Bottom";
+"Nagram.OneHanded.ChatSearchFieldAtBottom" = "Chat Search Field at the Bottom";

@@ -2205,6 +2205,7 @@ final class ChatListControllerNode: ASDisplayNode, ASGestureRecognizerDelegate {
         }, navigationController: navigationController, parentController: { [weak self] in
             return self?.controller
         })
+        contentNode.nagramBottomUp = searchBarIsExternal // MARK: NEXTGRAM
         contentNode.dismissSearch = { [weak self] in
             self?.dismissSearch?()
         }

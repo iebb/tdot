@@ -8087,6 +8087,9 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
             self.focusOnSearchAfterAppearance = nil
             if let searchNode = self.navigationBar?.contentNode as? ChatSearchNavigationContentNode {
                 searchNode.activate()
+            } else if let searchNode = self.chatDisplayNode.searchNavigationNode {
+                // MARK: NEXTGRAM — 单手模式下搜索框在底部搜索面板里，不在导航栏。
+                searchNode.activate()
             }
         }
         

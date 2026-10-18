@@ -618,3 +618,12 @@
 "TDot.Settings.Section.Folders" = "文件夹";
 "TDot.Settings.Section.MessageGestures" = "消息手势";
 "TDot.Settings.Markers.Footer" = "留空以使用默认显示。";
+"Nagram.SearchLink.Header" = "链接";
+"Nagram.SearchLink.Open" = "打开链接";
+"Nagram.SearchLink.OpenMessage" = "跳转到消息";
+"Nagram.SearchLink.OpenInvite" = "打开邀请链接";
+"Nagram.Section.OneHanded" = "单手模式";
+"Nagram.Section.OneHanded.Footer" = "让搜索操作都在拇指够得着的地方：结果从屏幕底部、紧挨搜索框开始排列，往上滑查看更多。聊天列表的搜索结果仅在搜索栏位于底部栏时生效。";
+"Nagram.OneHanded.GlobalSearchResults" = "搜索结果从底部开始";
+"Nagram.OneHanded.ChatSearchResults" = "聊天内搜索结果从底部开始";
+"Nagram.OneHanded.ChatSearchFieldAtBottom" = "聊天内搜索框放在底部";

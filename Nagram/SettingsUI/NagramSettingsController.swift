@@ -391,7 +391,7 @@ private struct NagramGroup {
         switch self.headerKey {
         case "Nagram.Section.Interface", "TDot.Settings.Section.Glass", "Nagram.Section.Stories", "Nagram.Section.Camera", "Nagram.StickerSize", "Nagram.Section.Stickers":
             return .appearance
-        case "TDot.Settings.Section.ChatList", "TDot.Settings.Section.Folders", "Nagram.Section.Gesture":
+        case "TDot.Settings.Section.ChatList", "TDot.Settings.Section.Folders", "Nagram.Section.Gesture", "Nagram.Section.OneHanded":
             return .chats
         case "Nagram.Section.MessageDisplay", "Nagram.Section.MessageList", "Nagram.Section.Channels", "Nagram.Section.Pangu", "Nagram.Section.MessageMenu", "Nagram.Section.Filtering", "Nagram.Section.Sending", "TDot.Settings.Section.MessageGestures":
             return .messages
@@ -473,6 +473,11 @@ private func nagramGroups(
             .choice(titleKey: "Nagram.GlassTransparency", prefix: "Nagram.GlassTransparency", options: ["system", "custom"], current: { NagramSettings.shared.glassTransparencyModeValue.rawValue }, set: { NagramSettings.shared.glassTransparencyMode = $0 }),
             .slider(titleKey: "Nagram.GlassTransparency.OverlayOpacity", minValue: 0, maxValue: 100, get: { NagramSettings.shared.glassTransparencyPercent }, set: { NagramSettings.shared.glassTransparencyPercent = $0 }, isVisible: { NagramSettings.shared.glassTransparencyModeValue == .custom }),
             .toggle(titleKey: "Nagram.ControlHighlight", get: { NagramSettings.shared.controlHighlightEnabled }, set: { NagramSettings.shared.controlHighlightEnabled = $0 }),
+        ]),
+        NagramGroup(tab: .general, headerKey: "Nagram.Section.OneHanded", footerKey: "Nagram.Section.OneHanded.Footer", rows: [
+            .toggle(titleKey: "Nagram.OneHanded.ChatSearchFieldAtBottom", get: { NagramSettings.shared.chatSearchFieldAtBottom }, set: { NagramSettings.shared.chatSearchFieldAtBottom = $0 }),
+            .toggle(titleKey: "Nagram.OneHanded.GlobalSearchResults", get: { NagramSettings.shared.bottomUpGlobalSearchResults }, set: { NagramSettings.shared.bottomUpGlobalSearchResults = $0 }),
+            .toggle(titleKey: "Nagram.OneHanded.ChatSearchResults", get: { NagramSettings.shared.bottomUpChatSearchResults }, set: { NagramSettings.shared.bottomUpChatSearchResults = $0 }),
         ]),
         NagramGroup(tab: .general, headerKey: "Nagram.Section.Stories", footerKey: nil, rows: [
             .toggle(titleKey: "Nagram.HideStories", get: { NagramSettings.shared.hideStories }, set: { NagramSettings.shared.hideStories = $0 }),

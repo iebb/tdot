@@ -30,6 +30,8 @@ swift_library(
         "//submodules/ChatListSearchItemHeader",
         "//submodules/TelegramUI/Components/LottieComponent",
         "//submodules/Components/MultilineTextComponent",
+        "//Nagram/FlippedList:NagramFlippedList", # MARK: NEXTGRAM
+        "//Nagram/Settings:NagramSettings", # MARK: NEXTGRAM
     ],
     visibility = [
         "//visibility:public",

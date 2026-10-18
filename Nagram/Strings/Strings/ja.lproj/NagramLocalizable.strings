@@ -618,3 +618,12 @@ iCloud キーチェーン同期を有効にすると、バックアップは他�
 "TDot.Settings.Section.Folders" = "フォルダ";
 "TDot.Settings.Section.MessageGestures" = "メッセージのジェスチャー";
 "TDot.Settings.Markers.Footer" = "空欄では既定の表示を使用します。";
+"Nagram.SearchLink.Header" = "リンク";
+"Nagram.SearchLink.Open" = "リンクを開く";
+"Nagram.SearchLink.OpenMessage" = "メッセージへ移動";
+"Nagram.SearchLink.OpenInvite" = "招待リンクを開く";
+"Nagram.Section.OneHanded" = "片手モード";
+"Nagram.Section.OneHanded.Footer" = "検索を親指の届く範囲で行えるようにします。結果は検索フィールドのそばの画面下部から並び、上にスクロールするとさらに表示されます。チャットリストの検索結果は、検索バーが下部バーにある場合のみ変わります。";
+"Nagram.OneHanded.GlobalSearchResults" = "検索結果を下から表示";
+"Nagram.OneHanded.ChatSearchResults" = "チャット内の検索結果を下から表示";
+"Nagram.OneHanded.ChatSearchFieldAtBottom" = "チャット内の検索フィールドを下部に表示";

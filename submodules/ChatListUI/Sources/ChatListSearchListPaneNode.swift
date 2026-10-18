@@ -40,6 +40,24 @@ import ButtonComponent
 import BundleIconComponent
 import AnimatedTextComponent
 import TextFormat
+// MARK: NEXTGRAM
+import NagramFlippedList
+import NagramSearchLink
+import NagramSettings
+import NagramStrings
+
+// MARK: NEXTGRAM
+private func nagramContainsFirstResponder(_ view: UIView) -> Bool {
+    if view.isFirstResponder {
+        return true
+    }
+    for subview in view.subviews {
+        if nagramContainsFirstResponder(subview) {
+            return true
+        }
+    }
+    return false
+}
 
 private func isIncludedCommunityContainer(_ peer: EnginePeer?, filter: ChatListNodePeersFilter) -> Bool {
     if filter.contains(.includeCommunities), case .community = peer {
@@ -405,6 +423,7 @@ public enum ChatListSearchEntryStableId: Hashable {
     case messagePlaceholder(Int32)
     case emptyMessagesFooter
     case addContact
+    case nagramSearchLink // MARK: NEXTGRAM
 }
 
 public enum ChatListSearchSectionExpandType {
@@ -469,9 +488,13 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
     case messagePlaceholder(Int32, ChatListPresentationData, TelegramSearchPeersScope)
     case emptyMessagesFooter(ChatListPresentationData, TelegramSearchPeersScope, String?)
     case addContact(String, PresentationTheme, PresentationStrings)
+    // MARK: NEXTGRAM — 搜索词是 Telegram 链接时置顶的「打开链接」入口。
+    case nagramSearchLink(NagramSearchLink, PresentationTheme, PresentationStrings)
 
     public var stableId: ChatListSearchEntryStableId {
         switch self {
+        case .nagramSearchLink:
+            return .nagramSearchLink
         case let .topic(_, threadInfo, _, _, _, _):
             return .threadId(threadInfo.id)
         case let .recentlySearchedPeer(peer, _, _, _, _, _, _, _, _, _):
@@ -495,6 +518,12 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
 
     public static func ==(lhs: ChatListSearchEntry, rhs: ChatListSearchEntry) -> Bool {
         switch lhs {
+        case let .nagramSearchLink(lhsLink, lhsTheme, lhsStrings):
+            if case let .nagramSearchLink(rhsLink, rhsTheme, rhsStrings) = rhs, lhsLink == rhsLink, lhsTheme === rhsTheme, lhsStrings === rhsStrings {
+                return true
+            } else {
+                return false
+            }
         case let .topic(lhsPeer, lhsThreadInfo, lhsIndex, lhsTheme, lhsStrings, lhsExpandType):
             if case let .topic(rhsPeer, rhsThreadInfo, rhsIndex, rhsTheme, rhsStrings, rhsExpandType) = rhs, lhsPeer == rhsPeer, lhsThreadInfo == rhsThreadInfo, lhsIndex == rhsIndex, lhsTheme === rhsTheme, lhsStrings === rhsStrings, lhsExpandType == rhsExpandType {
                 return true
@@ -631,7 +660,13 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
     }
 
     public static func <(lhs: ChatListSearchEntry, rhs: ChatListSearchEntry) -> Bool {
+        // MARK: NEXTGRAM — 链接入口排在所有结果之前。
+        if case .nagramSearchLink = rhs {
+            return false
+        }
         switch lhs {
+        case .nagramSearchLink:
+            return true
         case let .topic(_, _, lhsIndex, _, _, _):
             if case let .topic(_, _, rhsIndex, _, _, _) = rhs {
                 return lhsIndex <= rhsIndex
@@ -648,7 +683,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
             }
         case let .localPeer(_, _, _, lhsIndex, _, _, _, _, _, _, _, _):
             switch rhs {
-            case .topic, .recentlySearchedPeer:
+            case .nagramSearchLink, .topic, .recentlySearchedPeer:
                 return false
             case let .localPeer(_, _, _, rhsIndex, _, _, _, _, _, _, _, _):
                 return lhsIndex <= rhsIndex
@@ -657,7 +692,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
             }
         case let .adPeer(_, lhsIndex, _, _, _, _, _, _):
             switch rhs {
-            case .topic, .recentlySearchedPeer, .localPeer:
+            case .nagramSearchLink, .topic, .recentlySearchedPeer, .localPeer:
                 return false
             case let .adPeer(_, rhsIndex, _, _, _, _, _, _):
                 return lhsIndex <= rhsIndex
@@ -666,7 +701,7 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
             }
         case let .globalPeer(_, _, lhsIndex, _, _, _, _, _, _, _, _):
             switch rhs {
-            case .topic, .recentlySearchedPeer, .localPeer, .adPeer:
+            case .nagramSearchLink, .topic, .recentlySearchedPeer, .localPeer, .adPeer:
                 return false
             case let .globalPeer(_, _, rhsIndex, _, _, _, _, _, _, _, _):
                 return lhsIndex <= rhsIndex
@@ -733,6 +768,22 @@ public enum ChatListSearchEntry: Comparable, Identifiable {
         switchMessagesFilter: @escaping (TelegramSearchPeersScope) -> Void
     ) -> ListViewItem {
         switch self {
+            // MARK: NEXTGRAM
+            case let .nagramSearchLink(link, theme, strings):
+                let languageCode = strings.baseLanguageCode
+                let titleKey: String
+                switch link.kind {
+                case .message:
+                    titleKey = "Nagram.SearchLink.OpenMessage"
+                case .invite:
+                    titleKey = "Nagram.SearchLink.OpenInvite"
+                case .generic:
+                    titleKey = "Nagram.SearchLink.Open"
+                }
+                let header = ChatListSearchItemHeader(type: .text(ngI18n("Nagram.SearchLink.Header", languageCode), AnyHashable("nagramSearchLink")), theme: theme, strings: strings, actionTitle: nil, action: nil)
+                return NagramSearchLinkItem(theme: theme, title: ngI18n(titleKey, languageCode), subtitle: link.displayUrl, header: header, action: {
+                    interaction.openUrl(link.url)
+                })
             case let .topic(peer, threadInfo, _, theme, strings, expandType):
                 let actionTitle: String?
                 switch expandType {
@@ -1675,6 +1726,9 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
     private let mediaNode: ChatListSearchMediaNode?
     private var enqueuedRecentTransitions: [(ChatListSearchContainerRecentTransition, Bool)] = []
     private var enqueuedTransitions: [(ChatListSearchContainerTransition, Bool)] = []
+    // MARK: NEXTGRAM — 底部搜索栏模式下列表上下镜像（NagramFlippedListView）：最相关的结果贴近搜索框，往上滑加载更多。
+    private let nagramBottomUp: Bool
+    private var nagramPendingAfterInputDismissal: (() -> Void)?
 
     private var presentationDataDisposable: Disposable?
     private let updatedRecentPeersDisposable = MetaDisposable()
@@ -1765,8 +1819,10 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
     private var refreshGlobalPostSearchStateDisposable: Disposable?
 
-    init(context: AccountContext, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, interaction: ChatListSearchInteraction, key: ChatListSearchPaneKey, peersFilter: ChatListNodePeersFilter, requestPeerType: [ReplyMarkupButtonRequestPeerType]?, excludedPeerIds: Set<EnginePeer.Id>, location: ChatListControllerLocation, communityId: EnginePeer.Id? = nil, searchQuery: Signal<String?, NoError>, searchOptions: Signal<ChatListSearchOptions?, NoError>, navigationController: NavigationController?, parentController: ViewController?, globalPeerSearchContext: GlobalPeerSearchContext?) {
+    init(context: AccountContext, animationCache: AnimationCache, animationRenderer: MultiAnimationRenderer, updatedPresentationData: (initial: PresentationData, signal: Signal<PresentationData, NoError>)? = nil, interaction: ChatListSearchInteraction, key: ChatListSearchPaneKey, peersFilter: ChatListNodePeersFilter, requestPeerType: [ReplyMarkupButtonRequestPeerType]?, excludedPeerIds: Set<EnginePeer.Id>, location: ChatListControllerLocation, communityId: EnginePeer.Id? = nil, searchQuery: Signal<String?, NoError>, searchOptions: Signal<ChatListSearchOptions?, NoError>, navigationController: NavigationController?, parentController: ViewController?, globalPeerSearchContext: GlobalPeerSearchContext?, nagramBottomUp: Bool = false) { // MARK: NEXTGRAM
         self.context = context
+        // MARK: NEXTGRAM — 媒体网格页不是列表，不参与。
+        self.nagramBottomUp = nagramBottomUp && key != .media && NagramSettings.shared.bottomUpGlobalSearchResults
         self.animationCache = animationCache
         self.animationRenderer = animationRenderer
         self.interaction = interaction
@@ -1830,7 +1886,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         self.selectedMessages = interaction.getSelectedMessageIds()
         self.selectedMessagesPromise.set(.single(self.selectedMessages))
 
-        self.recentListNode = ListViewImpl()
+        self.recentListNode = self.nagramBottomUp ? NagramFlippedListView() : ListViewImpl() // MARK: NEXTGRAM
         self.recentListNode.preloadPages = false
         self.recentListNode.verticalScrollIndicatorColor = self.presentationData.theme.list.scrollIndicatorColor
         self.recentListNode.accessibilityPageScrolledString = { row, count in
@@ -1841,7 +1897,7 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         self.shimmerNode.isUserInteractionEnabled = false
         self.shimmerNode.allowsGroupOpacity = true
 
-        self.listNode = ListViewImpl()
+        self.listNode = self.nagramBottomUp ? NagramFlippedListView() : ListViewImpl() // MARK: NEXTGRAM
         self.listNode?.verticalScrollIndicatorColor = self.presentationData.theme.list.scrollIndicatorColor
         self.listNode?.accessibilityPageScrolledString = { row, count in
             return presentationData.strings.VoiceOver_ScrollStatus(row, count).string
@@ -2938,12 +2994,19 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 )
             }
 
+            // MARK: NEXTGRAM — 只在主聊天列表的搜索里提供链接入口；选人器、话题和收藏消息里的搜索不出现。
+            var nagramSearchLinkValue: NagramSearchLink?
+            if key == .chats, case .chatList = location, peersFilter.isEmpty, requestPeerType == nil {
+                nagramSearchLinkValue = nagramSearchLink(query: finalQuery, appSpecificScheme: context.sharedContext.applicationBindings.appSpecificScheme)
+            }
+
             let resolvedMessage: Signal<EngineMessage?, NoError>
             if case .savedMessagesChats = location {
                 resolvedMessage = .single(nil)
             } else {
                 resolvedMessage = .single(nil)
-                |> then(context.sharedContext.resolveUrl(context: context, peerId: nil, url: finalQuery, skipUrlAuth: true)
+                // MARK: NEXTGRAM — 不带域名的消息链接补上 t.me 后再解析，才能预览出消息。
+                |> then(context.sharedContext.resolveUrl(context: context, peerId: nil, url: nagramSearchLinkValue?.resolvableUrl ?? finalQuery, skipUrlAuth: true)
                 |> mapToSignal { resolvedUrl -> Signal<EngineMessage?, NoError> in
                     if case let .channelMessage(_, messageId, _) = resolvedUrl {
                         return context.engine.messages.downloadMessage(messageId: messageId)
@@ -3012,6 +3075,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
                 let isSearching = foundRemotePeers.3 || foundRemoteMessages.1 || foundPublicMessages.1
                 var entries: [ChatListSearchEntry] = []
                 var index = 0
+
+                // MARK: NEXTGRAM — 链接入口与普通搜索结果同时展示。
+                if let nagramSearchLinkValue {
+                    entries.append(.nagramSearchLink(nagramSearchLinkValue, presentationData.theme, presentationData.strings))
+                }
 
                 for thread in allAndFoundThreads {
                     if let peer = thread.renderedPeer.peer, let threadData = thread.threadData, case let .forum(_, _, id, _, _) = thread.index {
@@ -3676,7 +3744,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         }, openAdInfo: { node, adPeer in
             interaction.openAdInfo(node, adPeer)
         }, openAccountFreezeInfo: {
-        }, openUrl: { _ in
+        }, openUrl: { [weak self] url in
+            // MARK: NEXTGRAM — 搜索链接入口的点击。
+            interaction.dismissInput()
+            interaction.openUrl(url)
+            self?.listNode?.clearHighlightAnimated(true)
         })
         chatListInteraction.isSearchMode = true
 
@@ -4937,6 +5009,17 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
         let layoutChanged = self.currentParams?.size != size || self.currentParams?.sideInset != sideInset ||  self.currentParams?.topInset != topInset || self.currentParams?.bottomInset != bottomInset || self.currentParams?.visibleHeight != visibleHeight
         self.currentParams = (size, sideInset, topInset, bottomInset, visibleHeight, presentationData)
 
+        // MARK: NEXTGRAM — 键盘收起带来的这次布局完成后，再执行等待中的操作（见 openMessagesFilter）。
+        if layoutChanged, self.nagramPendingAfterInputDismissal != nil {
+            var delay: Double = 0.0
+            if case let .animated(duration, _) = transition {
+                delay = duration
+            }
+            Queue.mainQueue().after(delay, { [weak self] in
+                self?.nagramFlushPendingAfterInputDismissal()
+            })
+        }
+
         var topPanelHeight: CGFloat = 0.0
         if let (item, previousItem, nextItem, order, type, _) = self.playlistStateAndType {
             let panelHeight = MediaNavigationAccessoryHeaderNode.minimizedHeight
@@ -5211,7 +5294,11 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
 
         let topInset: CGFloat = topInset + topPanelHeight
         let overflowInset: CGFloat = 0.0
-        let insets = UIEdgeInsets(top: topInset + topPanelHeight, left: sideInset, bottom: bottomInset, right: sideInset)
+        var insets = UIEdgeInsets(top: topInset + topPanelHeight, left: sideInset, bottom: bottomInset, right: sideInset)
+        // MARK: NEXTGRAM — 镜像列表的 top inset 是屏幕底部的留白。
+        if self.nagramBottomUp {
+            insets = UIEdgeInsets(top: insets.bottom, left: insets.left, bottom: insets.top, right: insets.right)
+        }
 
         self.shimmerNode.frame = CGRect(origin: CGPoint(x: overflowInset, y: topInset), size: CGSize(width: size.width - overflowInset * 2.0, height: size.height))
         self.shimmerNode.update(context: self.context, size: CGSize(width: size.width - overflowInset * 2.0, height: size.height), presentationData: self.presentationData, animationCache: self.animationCache, animationRenderer: self.animationRenderer, key: !(self.searchQueryValue?.isEmpty ?? true) && self.key == .media ? .chats : self.key, hasSelection: self.selectedMessages != nil, transition: transition)
@@ -5753,7 +5840,34 @@ final class ChatListSearchListPaneNode: ASDisplayNode, ChatListSearchPaneNode {
     }
 
     func openMessagesFilter(sourceNode: ASDisplayNode) {
+        // MARK: NEXTGRAM — 菜单弹出时就固定在按钮当下的位置（keepInPlace），而收起键盘会让列表重新布局、
+        // 按钮跟着移动（从下往上显示时列表贴底，必然移动）。键盘开着时先收起，等布局完成再弹出。
+        var isInputActive = false
+        if let window = self.view.window {
+            isInputActive = nagramContainsFirstResponder(window)
+        }
         self.interaction.dismissInput()
+        if isInputActive {
+            self.nagramPendingAfterInputDismissal = { [weak self] in
+                self?.presentMessagesFilter(sourceNode: sourceNode)
+            }
+            // 键盘已在收起途中、不再引起布局变化时，也不能让菜单丢失。
+            Queue.mainQueue().after(0.6, { [weak self] in
+                self?.nagramFlushPendingAfterInputDismissal()
+            })
+        } else {
+            self.presentMessagesFilter(sourceNode: sourceNode)
+        }
+    }
+
+    private func nagramFlushPendingAfterInputDismissal() {
+        if let pending = self.nagramPendingAfterInputDismissal {
+            self.nagramPendingAfterInputDismissal = nil
+            pending()
+        }
+    }
+
+    private func presentMessagesFilter(sourceNode: ASDisplayNode) {
         let _ = (self.searchScopePromise.get()
         |> take(1)).start(next: { [weak self] scope in
             guard let self else {
