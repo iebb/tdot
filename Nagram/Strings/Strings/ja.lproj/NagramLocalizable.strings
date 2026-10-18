@@ -1,7 +1,8 @@
 "Nagram.Title" = "t.";
 "Nagram.DeepLink.UnsupportedPlatform" = "この設定項目は現在のプラットフォームでは利用できません。";
-"Nagram.Tab.General" = "一般";
-"Nagram.Tab.Chat" = "メッセージ";
+"Nagram.Tab.Interface" = "インターフェース";
+"Nagram.Tab.Chats" = "チャット";
+"Nagram.Tab.Messages" = "メッセージ";
 "Nagram.Tab.Other" = "その他";
 "Nagram.Section.Experimental" = "実験的機能";
 "Nagram.MediaMetadata" = "メディア metadata を表示";
@@ -22,7 +23,12 @@
 "Nagram.ChooseFolderAfterJoining" = "参加後にフォルダを選択";
 "Nagram.JoinedChatFolderUnavailable" = "追加できませんでした。フォルダが削除されたか、チャット数の上限に達しています。フォルダを整理して再試行してください。";
 "Nagram.Section.MessageDisplay" = "メッセージ表示";
-"Nagram.Section.MessageList" = "メッセージ一覧";
+"Nagram.Section.Appearance" = "外観";
+"Nagram.Section.ChatList" = "チャットリスト";
+"Nagram.Section.Folders" = "フォルダ";
+"Nagram.Section.ChatNavigation" = "チャットナビゲーション";
+"Nagram.Section.ChatNavigation.Footer" = "「次のチャンネル/トピックへのスワイプを無効化」をオンにすると、チャンネルやトピックの最下部で上にスワイプしても次のチャットへ移動しません。";
+"Nagram.Section.Confirmations" = "確認";
 "Nagram.StayAtLatestMessageAfterRefresh" = "更新後も最新メッセージを表示";
 "Nagram.StayAtLatestMessageAfterRefresh.Footer" = "オフでは Telegram 標準の動作に従い、更新中も現在のメッセージ位置を維持します。オンでは、最新メッセージ位置で始まった更新後も最新メッセージを表示し続けます。";
 "Nagram.HidePrivateChatActivities" = "個人チャットのアクティビティを非表示";
@@ -96,7 +102,6 @@
 "Nagram.Section.Filtering" = "フィルター";
 "Nagram.Section.Sending" = "送信";
 "Nagram.Section.Gesture" = "ジェスチャ";
-"Nagram.Section.Gesture.Footer" = "チャットリストの横スワイプと、チャンネル/トピック最下部で上にスワイプした際に次のチャットへ移動するかを設定します。";
 "Nagram.Section.Privacy" = "プライバシー";
 "Nagram.Section.Sync" = "同期";
 
@@ -313,9 +318,7 @@
 "Nagram.GroupProfileSettings.Item.deleteGroup" = "グループを削除";
 "Nagram.GroupProfileSettings.Item.other" = "その他の設定";
 "Nagram.HidePhoneInSettings" = "設定の電話番号を非表示";
-"Nagram.Section.Calls" = "通話";
 "Nagram.ConfirmCalls" = "通話前に確認";
-"Nagram.Section.Interface" = "インターフェース";
 "Nagram.HideTabBarPermissionWarnings" = "タブバーの権限警告を非表示";
 "Nagram.HideStories" = "ストーリーズを非表示";
 "Nagram.Section.Stories" = "ストーリーズ";
@@ -627,3 +630,11 @@ iCloud キーチェーン同期を有効にすると、バックアップは他�
 "Nagram.OneHanded.GlobalSearchResults" = "検索結果を下から表示";
 "Nagram.OneHanded.ChatSearchResults" = "チャット内の検索結果を下から表示";
 "Nagram.OneHanded.ChatSearchFieldAtBottom" = "チャット内の検索フィールドを下部に表示";
+
+// MARK: NEXTGRAM - labels retained for t. settings and legacy links.
+"Nagram.Tab.General" = "一般";
+"Nagram.Tab.Chat" = "メッセージ";
+"Nagram.Section.MessageList" = "メッセージ一覧";
+"Nagram.Section.Gesture.Footer" = "チャットリストの横スワイプと、チャンネル/トピック最下部で上にスワイプした際に次のチャットへ移動するかを設定します。";
+"Nagram.Section.Calls" = "通話";
+"Nagram.Section.Interface" = "インターフェース";

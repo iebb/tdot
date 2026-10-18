@@ -5,5 +5,5 @@
     "bazel": "9.2.0:dd466352a3e4d3581b8898740ee1ff208866ccbe25f8d367c5dcb950219587e6",
     "macos": "26",
     "tdot_revision": 7,
-    "nagram_revision": "9faf62288045c4831442324f1fe327afa035e2ac"
+    "nagram_revision": "708d6692e8b19d9cdc660f13e3e034bc9691dee0"
 }

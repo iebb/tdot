@@ -1,7 +1,8 @@
 "Nagram.Title" = "t.";
 "Nagram.DeepLink.UnsupportedPlatform" = "该配置项不适用于当前平台。";
-"Nagram.Tab.General" = "通用";
-"Nagram.Tab.Chat" = "消息";
+"Nagram.Tab.Interface" = "界面";
+"Nagram.Tab.Chats" = "会话";
+"Nagram.Tab.Messages" = "消息";
 "Nagram.Tab.Other" = "其他";
 "Nagram.Section.Experimental" = "实验性功能";
 "Nagram.MediaMetadata" = "显示媒体 metadata";
@@ -22,7 +23,12 @@
 "Nagram.ChooseFolderAfterJoining" = "加入群组或频道后选择分组";
 "Nagram.JoinedChatFolderUnavailable" = "无法添加此聊天，分组可能已被删除或达到聊天数量上限。请整理分组后重试。";
 "Nagram.Section.MessageDisplay" = "消息显示";
-"Nagram.Section.MessageList" = "消息列表";
+"Nagram.Section.Appearance" = "外观";
+"Nagram.Section.ChatList" = "会话列表";
+"Nagram.Section.Folders" = "分组";
+"Nagram.Section.ChatNavigation" = "聊天导航";
+"Nagram.Section.ChatNavigation.Footer" = "「禁止上滑到下一频道/主题」开启后，在频道或主题底部继续上滑不会跳转到下一个会话。";
+"Nagram.Section.Confirmations" = "确认";
 "Nagram.StayAtLatestMessageAfterRefresh" = "刷新后保持最新消息";
 "Nagram.StayAtLatestMessageAfterRefresh.Footer" = "关闭时遵循 Telegram 原生行为，刷新会保持当前消息位置；开启后，若刷新前位于最新消息边界，则继续显示最新消息。";
 "Nagram.HidePrivateChatActivities" = "隐藏私聊活动状态";
@@ -96,7 +102,6 @@
 "Nagram.Section.Filtering" = "过滤";
 "Nagram.Section.Sending" = "发送";
 "Nagram.Section.Gesture" = "手势";
-"Nagram.Section.Gesture.Footer" = "配置对话列表横滑，以及频道/主题底部上滑时是否跳转到下一个会话。";
 "Nagram.Section.Privacy" = "隐私";
 "Nagram.Section.Sync" = "同步";
 
@@ -313,9 +318,7 @@
 "Nagram.GroupProfileSettings.Item.deleteGroup" = "删除群组";
 "Nagram.GroupProfileSettings.Item.other" = "其他设置";
 "Nagram.HidePhoneInSettings" = "隐藏设置页手机号";
-"Nagram.Section.Calls" = "通话";
 "Nagram.ConfirmCalls" = "通话前确认";
-"Nagram.Section.Interface" = "界面";
 "Nagram.HideTabBarPermissionWarnings" = "隐藏标签栏权限警告";
 "Nagram.HideStories" = "隐藏动态";
 "Nagram.Section.Stories" = "动态";
@@ -627,3 +630,11 @@
 "Nagram.OneHanded.GlobalSearchResults" = "搜索结果从底部开始";
 "Nagram.OneHanded.ChatSearchResults" = "聊天内搜索结果从底部开始";
 "Nagram.OneHanded.ChatSearchFieldAtBottom" = "聊天内搜索框放在底部";
+
+// MARK: NEXTGRAM - labels retained for t. settings and legacy links.
+"Nagram.Tab.General" = "通用";
+"Nagram.Tab.Chat" = "消息";
+"Nagram.Section.MessageList" = "消息列表";
+"Nagram.Section.Gesture.Footer" = "配置对话列表横滑，以及频道/主题底部上滑时是否跳转到下一个会话。";
+"Nagram.Section.Calls" = "通话";
+"Nagram.Section.Interface" = "界面";
