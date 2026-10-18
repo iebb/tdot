@@ -226,6 +226,8 @@ def prepare(smoke=False):
             raise RuntimeError("Live reviewer smoke test failed")
         print("Live free-model merge and review smoke test passed.")
     head = api(REPO, "/commits/master")["sha"]
+    if head != os.environ.get("GITHUB_SHA"):
+        raise RuntimeError("Master moved after checkout; refusing to overwrite concurrent work")
     pin = json.loads(Path("versions.json").read_text())["nagram_revision"]
     latest = api(UPSTREAM, "/commits/HEAD")["sha"]
     if latest == pin:

@@ -26,7 +26,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
           persist-credentials: false
       - name: Test sync boundaries
         run: |
