@@ -19,7 +19,7 @@ class AppStoreConnect
     unsigned=[header,claims].map{|item|Base64.urlsafe_encode64(JSON.generate(item),padding:false)}.join('.')
     signature=OpenSSL::ASN1.decode(@key.sign('SHA256',unsigned)).value.map{|n|[n.value.to_s(16).rjust(64,'0')].pack('H*')}.join
     token=unsigned+'.'+Base64.urlsafe_encode64(signature,padding:false)
-    req={get:Net::HTTP::Get,post:Net::HTTP::Post}.fetch(method).new(uri)
+    req={get:Net::HTTP::Get,post:Net::HTTP::Post,patch:Net::HTTP::Patch}.fetch(method).new(uri)
     req['Authorization']='Bearer '+token
     req['Accept']='application/json'
     req['Content-Type']='application/json'
@@ -39,12 +39,13 @@ class AppStoreConnect
     end
     parsed=response.body.to_s.empty? ? {} : JSON.parse(response.body)
     unless response.code.to_i.between?(200,299)
-      raise "App Store Connect #{response.code}: #{Array(parsed['errors']).map{|e|[e['code'],e['detail']].compact.join(': ')}.join('; ')}"
+      raise "App Store Connect #{response.code}: #{Array(parsed['errors']).map{|e|e['code']}.compact.join('; ')}"
     end
     parsed
   end
 end
 
+if $PROGRAM_NAME == __FILE__
 client=AppStoreConnect.new
 app_id=ENV.fetch('ASC_APP_ID')
 app=client.request(:get,"/apps/#{app_id}")['data']
@@ -86,3 +87,4 @@ detail=client.request(:get,"/builds/#{build['id']}/buildBetaDetail")['data']['at
 summary={app:'t.',marketingVersion:version,buildNumber:build_number,processingState:build.dig('attributes','processingState'),buildAudience:build.dig('attributes','buildAudienceType'),internalBuildState:detail['internalBuildState'],externalBuildState:detail['externalBuildState'],internalGroup:group.dig('attributes','name')}
 File.write('build/artifacts/testflight-status.json',JSON.pretty_generate(summary)+"\n")
 puts JSON.pretty_generate(summary)
+end

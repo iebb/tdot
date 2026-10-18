@@ -10,6 +10,7 @@ Required GitHub secrets (the same identifiers are stored in the ignored local `.
 
 - `CI_CACHE_KEY`: random private encryption key for the compiled Bazel cache.
 - `APP_HASH`: the Telegram API hash matching the app's API ID.
+- `OPENROUTER_API_KEY`: private key for the daily free-model source merge and review. It is stored in the ignored `.env` for operator access; scheduled sync runs entirely on GitHub Actions.
 - `IOS_SIGNING_CERTIFICATE_P12`: base64 Kitta distribution certificate and private key.
 - `IOS_SIGNING_CERTIFICATE_PASSWORD`: the P12 password.
 - `IOS_PROVISIONING_PROFILES_TAR_GZ`: base64 gzip-compressed tar archive containing seven App Store profiles, each assigned to `group.${BUNDLE_ID}`, using the same distribution certificate. The main app also requires Push Notifications and Siri; the Intents extension requires Siri.

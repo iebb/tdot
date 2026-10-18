@@ -1,0 +1,97 @@
+name: Daily Nagram sync and TestFlight check
+on:
+  schedule:
+    - cron: '23 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Validate without publishing source changes
+        type: boolean
+        default: false
+      smoke:
+        description: Exercise a real free-model merge and review
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: tdot-daily-sync
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      changed: ${{ steps.sync.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          persist-credentials: false
+      - name: Test sync boundaries
+        run: |
+          python3 -m unittest discover -s ci/tests -v
+          ruby ci/tests/test_testflight.rb
+      - name: Merge and review public source with free models only
+        id: sync
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: python3 ci/sync-upstream.py ${{ inputs.smoke && '--smoke' || '' }}
+      - uses: actions/upload-artifact@v4
+        if: steps.sync.outputs.changed == 'true'
+        with:
+          name: reviewed-public-source
+          path: sync-proposal.json
+          retention-days: 1
+          if-no-files-found: error
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.changed == 'true' && inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: reviewed-public-source
+      - name: Publish a snapshot and start the signed build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/sync-upstream.py --publish
+  testflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Resume release and verify both TestFlight audiences
+        env:
+          ASC_APP_ID: ${{ secrets.ASC_APP_ID }}
+          BUNDLE_ID: ${{ secrets.BUNDLE_ID }}
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          export ASC_KEY_PATH="$RUNNER_TEMP/testflight-key.p8"
+          trap 'rm -f "$ASC_KEY_PATH"' EXIT
+          umask 077
+          printf '%s' "$ASC_PRIVATE_KEY" > "$ASC_KEY_PATH"
+          ruby ci/testflight-publication.rb
+      - name: Verify the rendered public join page
+        run: |
+          python3 -m pip install playwright
+          python3 -m playwright install --with-deps chromium
+          python3 ci/check-testflight-page.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: testflight-publication
+          path: build/artifacts/testflight-publication.json
+          if-no-files-found: ignore

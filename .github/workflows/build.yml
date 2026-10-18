@@ -134,6 +134,9 @@ jobs:
       - name: Verify processing and enable internal TestFlight
         if: env.DISTRIBUTION == 'testflight'
         run: ruby ci/testflight.rb
+      - name: Resume external beta review and distribution
+        if: env.DISTRIBUTION == 'testflight'
+        run: ruby ci/testflight-publication.rb
       - name: Save verified TestFlight state
         if: env.DISTRIBUTION == 'testflight'
         uses: actions/upload-artifact@v4
