@@ -101,7 +101,7 @@ class Reviewer:
                 "provider": {"max_price": {"prompt": 0, "completion": 0}, "require_parameters": True},
                 "response_format": {"type": "json_schema", "json_schema": {
                     "name": "merge_decision", "strict": True, "schema": {"type": "object",
-                    "properties": {"decision": {"type": "string", "enum": ["merge", "approve", "block"]},
+                    "properties": {"decision": {"type": "string", "enum": ["merge", "block"] if task.startswith("Resolve") else ["approve", "block"]},
                                    "content": {"type": "string"}},
                     "required": ["decision", "content"], "additionalProperties": False}}},
                 "messages": [{"role": "system", "content": POLICY + "\n" + task + "\nReturn strict JSON matching the schema. Set content to an empty string for approval, or a brief reason for blocking."},
@@ -120,6 +120,8 @@ class Reviewer:
         choice = result.get("choices", [{}])[0]
         if choice.get("finish_reason") != "stop":
             raise RuntimeError("Incomplete model response; refusing merge")
+        if not isinstance(choice.get("message", {}).get("content"), str):
+            raise RuntimeError("Free model returned no decision content")
         try:
             raw = choice["message"]["content"].strip()
             if raw.startswith("```json\n") and raw.endswith("```"):
@@ -161,6 +163,10 @@ def merge(path, base, ours, theirs, reviewer):
         answer = reviewer.ask('Resolve only this conflict. Return {"decision":"merge","content":"complete resolved hunk"} or {"decision":"block"}.',
                               {"path": path, "context": context, "ours": match[1], "base": match[2], "upstream": match[3]})
         if answer.get("decision") != "merge" or not isinstance(answer.get("content"), str):
+            reason = answer.get("content", "")[:500]
+            if isinstance(reason, str):
+                scan(reason.encode())
+                print(json.dumps({"blockedPath": path, "modelReason": reason}, ensure_ascii=True))
             raise RuntimeError("Model requested manual conflict review in " + path)
         resolved = answer["content"]
         scan(resolved.encode())
