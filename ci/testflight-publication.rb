@@ -33,8 +33,8 @@ selected=['t. Internal','t. External'].map do |name|
 end
 raise 'Incorrect TestFlight audience types' unless selected[0].dig('attributes','isInternalGroup') && !selected[1].dig('attributes','isInternalGroup')
 selected.each do |g|
-  attached=c.request(:get,"/builds/#{b['id']}/betaGroups",params:{'limit'=>200})['data']
-  unless attached.any?{|r|r['id']==g['id']}
+  attached=c.request(:get,"/betaGroups/#{g['id']}/builds",params:{'limit'=>200})['data']
+  unless attached.any?{|r|r['id']==b['id']}
     c.request(:post,"/betaGroups/#{g['id']}/relationships/builds",body:{data:[{type:'builds',id:b['id']}]})
   end
 end
@@ -58,8 +58,9 @@ unless review || detail.dig('attributes','externalBuildState')=='IN_BETA_TESTING
   review=c.request(:post,'/betaAppReviewSubmissions',body:{data:{type:'betaAppReviewSubmissions',relationships:{build:{data:{type:'builds',id:b['id']}}}}})['data']
 end
 detail=c.request(:get,"/builds/#{b['id']}/buildBetaDetail")['data']['attributes']
-attached=c.request(:get,"/builds/#{b['id']}/betaGroups",params:{'limit'=>200})['data']
-raise 'Audience attachment did not persist' unless selected.all?{|g|attached.any?{|r|r['id']==g['id']}}
+raise 'Audience attachment did not persist' unless selected.all? do |g|
+  c.request(:get,"/betaGroups/#{g['id']}/builds",params:{'limit'=>200})['data'].any?{|r|r['id']==b['id']}
+end
 external=selected[1]['attributes']
 raise 'Public TestFlight link is disabled' unless external['publicLinkEnabled']
 link=external.fetch('publicLink')

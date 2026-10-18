@@ -106,6 +106,8 @@ class Reviewer:
         try:
             with urllib.request.urlopen(request, timeout=180) as response:
                 result = json.load(response)
+        except urllib.error.HTTPError as error:
+            raise RuntimeError(f"Free model request failed ({error.code}); no paid fallback, retry next run") from None
         except (OSError, ValueError):
             raise RuntimeError("Free model unavailable or rate limited; no paid fallback, retry next run") from None
         choice = result.get("choices", [{}])[0]

@@ -17,6 +17,7 @@ class PublicationClient
     when '/apps/test-app' then {attributes:{bundleId:'test.bundle'}}
     when '/builds' then return JSON.parse(JSON.generate({data:[{id:'build',attributes:{version:'111',processingState:@processing,buildAudienceType:'APP_STORE_ELIGIBLE',expired:false},relationships:{preReleaseVersion:{data:{id:'train'}}}}],included:[{type:'preReleaseVersions',id:'train',attributes:{version:'1.0.0',platform:'IOS'}}]}))
     when '/apps/test-app/betaGroups', '/builds/build/betaGroups' then groups
+    when '/betaGroups/internal/builds', '/betaGroups/external/builds' then [{id:'build'}]
     when '/builds/build/betaBuildLocalizations' then [{attributes:{locale:'en-CA',whatsNew:'Existing notes'}}]
     when '/builds/build/buildBetaDetail' then {id:'detail',attributes:{autoNotifyEnabled:true,internalBuildState:'IN_BETA_TESTING',externalBuildState:@review=='APPROVED' ? 'IN_BETA_TESTING' : 'WAITING_FOR_BETA_REVIEW'}}
     when '/betaAppReviewSubmissions' then [{attributes:{betaReviewState:@review}}]
