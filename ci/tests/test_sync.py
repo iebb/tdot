@@ -158,6 +158,14 @@ class SyncTests(unittest.TestCase):
         self.assertEqual(request.call_args.args[2], 1)
         self.assertIn("correctionRequired", request.call_args.args[1])
 
+    def test_exhausted_free_daily_quota_defers_without_spending_more_requests(self):
+        error = sync.urllib.error.HTTPError("https://openrouter.ai", 429, "limited", {"X-RateLimit-Remaining": "0"}, io.BytesIO(b"{}"))
+        reviewer = sync.Reviewer()
+        with patch.dict("os.environ", {"OPENROUTER_API_KEY": "private-test"}), patch.object(sync.urllib.request, "urlopen", side_effect=error) as request, self.assertRaises(sync.DeferredSync):
+            reviewer.ask("Resolve", {})
+        self.assertEqual(request.call_count, 1)
+        self.assertEqual(reviewer.calls, 1)
+
     def test_source_review_repairs_omitted_behavior_without_human_approval(self):
         changes = {"Nagram/Example.swift": b"overlay\n"}
         reviewer = sync.Reviewer()

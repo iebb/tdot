@@ -47,6 +47,10 @@ human review. Never sacrifice secrets or downstream behavior to pass a check.
 """
 
 
+class DeferredSync(RuntimeError):
+    """Transient free-provider limits are retried by the daily hosted schedule."""
+
+
 def api(repo, path, body=None, method=None):
     headers = {"Accept": "application/vnd.github+json", "User-Agent": "tdot-sync"}
     if os.environ.get("GH_TOKEN"):
@@ -162,13 +166,15 @@ class Reviewer:
                 reason = answer.get("content", "")
                 scan(str(reason).encode())
                 payload["correctionRequired"] = str(reason)[:4000]
+            except DeferredSync:
+                raise
             except RuntimeError as error:
                 if self.calls >= MAX_CALLS:
                     raise
                 payload["retryReason"] = str(error)
                 print("Automatic decision retry: " + str(error), flush=True)
             print("Retrying the automatic decision with another free coding model.")
-        raise RuntimeError("Free models could not produce a valid automatic decision; unchanged source will be retried next daily run")
+        raise DeferredSync("Free models could not produce a valid automatic decision; unchanged source will be retried next daily run")
 
     def request(self, task, payload, attempt=0):
         if self.calls >= MAX_CALLS:
@@ -211,6 +217,9 @@ class Reviewer:
             with urllib.request.urlopen(request, timeout=180) as response:
                 result = json.load(response)
         except urllib.error.HTTPError as error:
+            if error.code == 429 and error.headers.get("X-RateLimit-Remaining") == "0":
+                error.close()
+                raise DeferredSync("OpenRouter free daily quota exhausted; the next daily hosted run will retry automatically without paid credits") from None
             raise RuntimeError(f"Free model request failed ({error.code}); no paid fallback, retry next run") from None
         except (OSError, ValueError):
             raise RuntimeError("Free model unavailable or rate limited; no paid fallback, retry next run") from None
@@ -664,6 +673,8 @@ if __name__ == "__main__":
             resume_build()
         else:
             prepare(args.smoke)
+    except DeferredSync as error:
+        print("Sync deferred: " + str(error))
     except (RuntimeError, KeyError, ValueError, OSError) as error:
         # Never echo model text, API response bodies or credentials into logs.
         print("Sync stopped: " + (str(error) if isinstance(error, RuntimeError) else type(error).__name__))
