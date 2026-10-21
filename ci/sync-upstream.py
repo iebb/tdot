@@ -166,6 +166,7 @@ class Reviewer:
                 if self.calls >= MAX_CALLS:
                     raise
                 payload["retryReason"] = str(error)
+                print("Automatic decision retry: " + str(error), flush=True)
             print("Retrying the automatic decision with another free coding model.")
         raise RuntimeError("Free models could not produce a valid automatic decision; unchanged source will be retried next daily run")
 
