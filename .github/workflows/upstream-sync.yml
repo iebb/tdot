@@ -73,7 +73,22 @@ jobs:
         with:
           name: reviewed-public-source
       - name: Apply reviewed candidate without committing
+        id: candidate
         run: python3 ci/sync-upstream.py --apply
+      - name: Check out changed upstream dependencies at the exact revision
+        if: steps.candidate.outputs.dependencies == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: NextAlone/Nagram-iOS
+          ref: ${{ steps.candidate.outputs.upstream }}
+          path: build/tdot-upstream-source
+          submodules: recursive
+          persist-credentials: false
+      - name: Hydrate changed dependencies for candidate validation
+        if: steps.candidate.outputs.dependencies == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 ci/sync-upstream.py --hydrate-dependencies
       - name: Select Xcode and install Metal
         run: |
           set -euo pipefail

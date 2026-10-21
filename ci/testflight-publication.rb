@@ -32,6 +32,14 @@ selected=['t. Internal','t. External'].map do |name|
   found.first
 end
 raise 'Incorrect TestFlight audience types' unless selected[0].dig('attributes','isInternalGroup') && !selected[1].dig('attributes','isInternalGroup')
+external_group=selected[1]
+# Keep the existing public enrollment open up to Apple's external-tester cap.
+# This changes capacity only; it neither invites testers nor bypasses beta review.
+if external_group.dig('attributes','publicLinkEnabled') && external_group.dig('attributes','publicLinkLimitEnabled') && external_group.dig('attributes','publicLinkLimit').to_i<10_000
+  c.request(:patch,"/betaGroups/#{external_group['id']}",body:{data:{type:'betaGroups',id:external_group['id'],attributes:{publicLinkLimit:10_000}}})
+  selected[1]=c.request(:get,"/betaGroups/#{external_group['id']}")['data']
+  raise 'Public enrollment capacity did not persist' unless selected[1].dig('attributes','publicLinkLimit')==10_000
+end
 selected.each do |g|
   attached=c.request(:get,"/betaGroups/#{g['id']}/builds",params:{'limit'=>200})['data']
   unless attached.any?{|r|r['id']==b['id']}

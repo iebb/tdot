@@ -1,7 +1,10 @@
 import importlib.util
+import hashlib
 import io
 import json
+import os
 from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -12,9 +15,11 @@ spec.loader.exec_module(sync)
 
 class SyncTests(unittest.TestCase):
     def test_protected_paths(self):
-        for path in (".env", ".github/workflows/build.yml", "ci/build.sh", "Nagram/../../.env", "Telegram/key.p8", "/Nagram/file.swift"):
+        for path in (".env", ".github/workflows/build.yml", "ci/build.sh", "Nagram/../../.env", "Telegram/key.p8", "/Nagram/file.swift", "CLAUDE.md", "AGENTS.md", "build-system/appstore-configuration.json", "Nagram/.git/config", "."):
             self.assertFalse(sync.allowed(path))
         self.assertTrue(sync.allowed("submodules/TelegramUI/Chat.swift"))
+        for path in ("MODULE.bazel", "MODULE.bazel.lock", ".bazelrc", ".gitmodules", "build-system/Make/Make.py", "NewLibrary/BUILD"):
+            self.assertTrue(sync.allowed(path))
 
     def test_secrets_and_markers_rejected(self):
         for data in (b'APP_ID = 12345678', b'APP_HASH = "' + b'a' * 32 + b'"',
@@ -62,9 +67,104 @@ class SyncTests(unittest.TestCase):
             with patch.object(reviewer, "ask", return_value=result), self.assertRaises(RuntimeError):
                 sync.merge("Nagram/test.swift", b"a\n", b"b\n", b"c\n", reviewer)
 
-    def test_delete_modify_fails_closed(self):
-        with self.assertRaises(RuntimeError):
-            sync.merge("Nagram/test.swift", b"a\n", b"b\n", None, sync.Reviewer())
+    def test_delete_modify_preserves_overlay_automatically(self):
+        self.assertEqual(sync.merge("Nagram/test.swift", b"base\n", b"overlay\n", None, sync.Reviewer()), b"overlay\n")
+        self.assertIsNone(sync.merge("Nagram/RemovedBadge.swift", b"base\n", None, b"upstream\n", sync.Reviewer()))
+        self.assertIsNone(sync.merge("Nagram/obsolete.swift", b"base\n", b"base\n", None, sync.Reviewer()))
+
+    def test_binary_assets_sync_and_keep_modified_branding(self):
+        self.assertEqual(sync.merge("Telegram/icon.png", b"\0base", b"\0base", b"\0new", sync.Reviewer()), b"\0new")
+        self.assertEqual(sync.merge("Telegram/icon.png", b"\0base", b"\0tdot", b"\0new", sync.Reviewer()), b"\0tdot")
+        self.assertIn("Binary asset", sync.text_delta(b"\0old", b"\0new"))
+
+    def plan(self, base, ours, upstream, hints=()):
+        content = {}
+        def tree(files):
+            entries = {}
+            for path, value in files.items():
+                mode, data = value if isinstance(value, tuple) else ("100644", value)
+                sha = data.decode() if mode == "160000" else hashlib.sha1(data).hexdigest()
+                content[sha] = data
+                entries[path] = {"path": path, "mode": mode, "sha": sha, "type": "commit" if mode == "160000" else "blob"}
+            return entries
+        trees = {"base": tree(base), "head": tree(ours), "latest": tree(upstream)}
+        with patch.object(sync, "snapshot", side_effect=lambda repo, rev: trees[rev]), patch.object(sync, "source_blob", side_effect=lambda repo, sha: content[sha]), patch.object(sync, "api", return_value={"status": "diverged", "files": list(hints)}):
+            return sync.plan_changes("base", "latest", "head", sync.Reviewer())
+
+    def test_guidance_edit_never_blocks_app_or_infrastructure_sync(self):
+        before = {"CLAUDE.md": b"old instructions", "MODULE.bazel": b"old dependency", "Nagram/new.swift": b"old"}
+        upstream = dict(before, **{"CLAUDE.md": b"untrusted instructions", "MODULE.bazel": b"new dependency", "Nagram/new.swift": b"new"})
+        changes, modes, renames, deltas = self.plan(before, before, upstream)
+        self.assertNotIn("CLAUDE.md", changes)
+        self.assertEqual(changes["MODULE.bazel"], b"new dependency")
+        self.assertEqual(changes["Nagram/new.swift"], b"new")
+
+    def test_rename_carries_downstream_overlay_and_deletes_old_path(self):
+        changes, modes, renames, deltas = self.plan({"Nagram/Old.swift": b"base\n"}, {"Nagram/Old.swift": b"overlay\n"}, {"Nagram/New.swift": b"base\n"})
+        self.assertEqual(changes, {"Nagram/New.swift": b"overlay\n", "Nagram/Old.swift": None})
+        self.assertEqual(renames, {"Nagram/Old.swift": "Nagram/New.swift"})
+
+    def test_renamed_removed_badge_stays_removed(self):
+        changes, _, _, _ = self.plan({"Nagram/Badge.swift": b"badge\n"}, {}, {"Nagram/NewBadge.swift": b"badge\n"})
+        self.assertEqual(changes, {})
+
+    def test_large_snapshot_is_not_limited_to_compare_file_list(self):
+        after = {f"Nagram/Source{i}.swift": b"public code\n" for i in range(320)}
+        changes, _, _, _ = self.plan({}, {}, after)
+        self.assertEqual(len(changes), 320)
+
+    def test_submodule_and_executable_modes_follow_upstream(self):
+        path = "third-party/library"
+        changes, modes, _, _ = self.plan({path: ("160000", b"a" * 40)}, {path: ("160000", b"a" * 40)}, {path: ("160000", b"b" * 40), "build-system/new.sh": ("100755", b"echo build\n")})
+        self.assertEqual(changes[path], b"b" * 40)
+        self.assertEqual(modes[path], "160000")
+        self.assertEqual(modes["build-system/new.sh"], "100755")
+
+    def test_edited_rename_merges_overlay_with_upstream_functionality(self):
+        base = b"a\nb\nc\nd\ne\n"
+        hints = [{"status": "renamed", "previous_filename": "Nagram/Old.swift", "filename": "Nagram/New.swift"}]
+        changes, _, _, _ = self.plan({"Nagram/Old.swift": base}, {"Nagram/Old.swift": b"A\nb\nc\nd\ne\n"}, {"Nagram/New.swift": b"a\nb\nc\nd\nE\n"}, hints)
+        self.assertEqual(changes["Nagram/New.swift"], b"A\nb\nc\nd\nE\n")
+
+    def test_toolchain_sync_preserves_downstream_release_version(self):
+        with patch.object(Path, "read_text", return_value='{"app":"1.0.0","xcode":"old","tdot_revision":7}'):
+            result = sync.synced_versions({"app": "13.0.1", "xcode": "new", "unknown_identity": "upstream"}, "new-pin")
+        self.assertEqual(result, {"app": "1.0.0", "xcode": "new", "tdot_revision": 7, "nagram_revision": "new-pin"})
+
+    def test_candidate_preserves_executable_and_symlink_modes(self):
+        cwd = Path.cwd()
+        with tempfile.TemporaryDirectory() as folder:
+            try:
+                os.chdir(folder)
+                proposal = {"parent": "head", "upstream": "pin", "changes": {"Nagram/run.sh": "ZWNobyBvaw==", "Nagram/link": "cnVuLnNo"}, "modes": {"Nagram/run.sh": "100755", "Nagram/link": "120000"}}
+                Path("sync-proposal.json").write_text(json.dumps(proposal))
+                with patch.dict("os.environ", {"GITHUB_SHA": "head"}):
+                    sync.apply_proposal()
+                self.assertTrue(Path("Nagram/run.sh").stat().st_mode & 0o111)
+                self.assertTrue(Path("Nagram/link").is_symlink())
+                self.assertEqual(Path("Nagram/link").read_text(), "echo ok")
+            finally:
+                os.chdir(cwd)
+
+    def test_private_or_escaping_symlinks_rejected(self):
+        for data in (b"../.env", b"../../outside", b"/etc/passwd"):
+            with self.assertRaises(RuntimeError):
+                sync.validate_changes({"Nagram/link": data}, {"Nagram/link": "120000"})
+
+    def test_reviewer_disagreement_is_retried_with_another_free_model(self):
+        reviewer = sync.Reviewer()
+        with patch.object(reviewer, "request", side_effect=[{"decision": "block", "content": "combine adjacent edits"}, {"decision": "merge", "content": "combined"}]) as request:
+            self.assertEqual(reviewer.ask("Resolve", {})["content"], "combined")
+        self.assertEqual(request.call_args.args[2], 1)
+        self.assertIn("correctionRequired", request.call_args.args[1])
+
+    def test_source_review_repairs_omitted_behavior_without_human_approval(self):
+        changes = {"Nagram/Example.swift": b"overlay\n"}
+        reviewer = sync.Reviewer()
+        answers = [{"decision": "repair", "repairs": [{"path": "Nagram/Example.swift", "before": "overlay\n", "after": "overlay + upstream\n"}]}, {"decision": "approve"}]
+        with patch.object(reviewer, "ask", side_effect=answers):
+            sync.review_changes(changes, reviewer, {"Nagram/Example.swift": "upstream feature"})
+        self.assertEqual(changes["Nagram/Example.swift"], b"overlay + upstream\n")
 
     def test_layout_sync_keeps_localization_used_by_downstream(self):
         merged = sync.retain_localization_keys(b'"Legacy" = "Old";\n"Shared" = "Before";\n', b'"Shared" = "After";\n"Added" = "New";\n')
