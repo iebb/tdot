@@ -162,6 +162,25 @@ class Reviewer:
             try:
                 answer = self.request(task, payload, attempt)
                 if answer.get("decision") != "block":
+                    if task.startswith("Resolve complete file") and isinstance(payload.get("ours"), str):
+                        edits = answer.get("edits")
+                        if not isinstance(edits, list):
+                            raise RuntimeError("No valid automatic settings resolution; retry next daily run")
+                        if len(edits) > 30:
+                            raise RuntimeError("Settings edit budget exceeded; retry next daily run")
+                        preview = payload["ours"]
+                        for idx, edit in enumerate(edits):
+                            before = edit.get("before") if isinstance(edit, dict) else None
+                            after = edit.get("after") if isinstance(edit, dict) else None
+                            if not isinstance(before, str) or not before or not isinstance(after, str):
+                                raise RuntimeError("Ambiguous model edit; refusing settings merge")
+                            matches = preview.count(before)
+                            if matches != 1:
+                                raise RuntimeError(
+                                    f"Ambiguous model edit (edit #{idx + 1} matched {matches} times in OURS, expected 1; copy exact unique context lines from OURS); refusing settings merge"
+                                )
+                            preview = preview.replace(before, after, 1)
+                        scan(preview.encode())
                     return answer
                 reason = answer.get("content", "")
                 scan(str(reason).encode())
@@ -276,9 +295,13 @@ def merge(path, base, ours, theirs, reviewer):
     if result.returncode == 1 and path.startswith("Nagram/SettingsUI/"):
         # Settings tab/namespace changes cross hunk boundaries. Review the whole
         # file so the model can reconcile declarations, callers and link aliases.
-        answer = reviewer.ask('Resolve complete file: use OURS as the foundation, integrate upstream functional changes and new link aliases, and preserve our eight-category layout and all existing callbacks. Return decision merge with minimal exact before/after textual edits to OURS in the edits array; set content empty. Each before must occur exactly once. Do not copy the entire file. An empty edits array is allowed only when upstream changes are entirely covered by our explicit UI exception. Or return block, a reason in content, and empty edits. Annotate new downstream integration sites with // MARK: NEXTGRAM.',
-                              {"path": path, "ours": contents[0], "base": contents[1], "upstream": contents[2],
-                               "categoryHub": Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:4000]})
+        settings_payload = {"path": path, "ours": contents[0], "base": contents[1], "upstream": contents[2],
+                            "categoryHub": Path("Nagram/SettingsUI/TDotSettingsCategoriesController.swift").read_text()[:4000]}
+        upstream_diff = text_delta(base, theirs)
+        if len(json.dumps(settings_payload, ensure_ascii=False)) + len(upstream_diff) < 380_000:
+            settings_payload["upstreamDiff"] = upstream_diff
+        answer = reviewer.ask('Resolve complete file: use OURS as the foundation, integrate upstream functional changes and new link aliases (see upstreamDiff), and preserve our eight-category layout and all existing callbacks. Return decision merge with minimal exact before/after textual edits to OURS in the edits array; set content empty. Every before string must be copied verbatim from OURS (never from BASE or UPSTREAM) with enough surrounding lines to occur in OURS exactly once. Do not copy the entire file. An empty edits array is allowed only when upstream changes are entirely covered by our explicit UI exception. Or return block, a reason in content, and empty edits. Annotate new downstream integration sites with // MARK: NEXTGRAM.',
+                              settings_payload)
         if answer.get("decision") != "merge" or not isinstance(answer.get("edits"), list):
             reason = answer.get("content", "")
             if isinstance(reason, str):
